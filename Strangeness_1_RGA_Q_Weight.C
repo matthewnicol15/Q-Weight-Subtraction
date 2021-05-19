@@ -703,6 +703,7 @@ void Strangeness_1_Exclusive_RGA_v1(){
             hinv_lambda->Fill(lambda.M());
             hmiss_mass_all->Fill(missall.M2());
             hmiss_momentum_all->Fill(missall.Rho());
+            Hello 
 
           } // exclusive events with pi^{-} detected
         } // cuts around missing mass of the lambda and pion
