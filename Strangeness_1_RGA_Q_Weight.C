@@ -13,7 +13,7 @@
 #include <vector>
 
 // Macro name
-void Strangeness_1_Exclusive_RGA_v1(){
+void Strangeness_1_RGA_Q_Weight(){
 
   // Read file with information on vectors
   gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
@@ -80,7 +80,7 @@ void Strangeness_1_Exclusive_RGA_v1(){
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Path and name for the output file to save
-  TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/Strangeness_1_RGA_Skim4_e_Kp_FD_Inbending_190521_01.root","recreate");
+  TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/Strangeness_1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_190521_01.root","recreate");
 
 
   // Getting particle database to use for masses
@@ -89,14 +89,15 @@ void Strangeness_1_Exclusive_RGA_v1(){
   // Create histograms here
   auto* hmiss_mass_all=new TH1F("miss_all","MM^2(e' K^{+} p #pi^{-});MM^2(e' K^{+} p #pi^{-}) [GeV];Counts",800,-1,3);
   auto* hmiss_momentum_all=new TH1F("hmiss_momentum_all","P(B + T - e' - K^{+} - p - #pi^{-});P(B + T - e' - K^{+} - p - #pi^{-}) [GeV];Counts",800,-1,3);
-  auto* hinv_lambda=new TH1F("hinv_lambda","Invariant mass of p #pi^{-};M(p #pi^{-}) [GeV];Counts",200,0,2);
-  auto* hinv_lambda_unid=new TH1F("hinv_lambda_unid","Invariant mass of p PID=0 assuming #pi^{-} mass;M(p #pi^{-}) [GeV];Counts",200,0,2);
+  auto* hinv_lambda=new TH1F("hinv_lambda","Invariant mass of p #pi^{-};M(p #pi^{-}) [GeV];Counts",500,1,2);
+  auto* hinv_lambda_unid=new TH1F("hinv_lambda_unid","Invariant mass of p PID=0 assuming #pi^{-} mass;M(p #pi^{-}) [GeV];Counts",500,1,2);
   auto* hinv_missing_lambda=new TH2D("hinv_missing_lambda","Missing #Lambda against invariant #Lambda;M(p #pi^{-}) [GeV];MM(e' K^{+}) [GeV]",200,0.5,2.0,200,0.5,2.06);
   auto* hangular_distribution=new TH2D("hangular_distribution","Theta vs Phi for PID 0 assuming it's #pi^{-};#phi [deg];#theta [deg]",200,-200,200,200,-200,200);
   auto* hangular_distribution_momentum_unidentified=new TH2D("hangular_distribution_momentum_unidentified","Theta vs P for PID 0 assuming it's #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hangular_distribution_momentum_reconstructed=new TH2D("hangular_distribution_momentum_reconstructed","Theta vs P for reconstructed #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hangular_distribution_momentum_detected=new TH2D("hangular_distribution_momentum_detected","Theta vs P for #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hmiss_1=new TH1F("hmiss_1","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
+  auto* hmiss_1_2=new TH1F("hmiss_1_2","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
   auto* hmiss_1_sig=new TH1F("hmiss_1_sig","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
   auto* hmiss_1_back=new TH1F("hmiss_1_back","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
   auto* hmiss_1_phi=new TH1F("hmiss_1_phi","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
@@ -106,7 +107,9 @@ void Strangeness_1_Exclusive_RGA_v1(){
   auto* hkaon_pion_sig=new TH2F("hkaon_pion_sig","kaon vs pion;MM(e'K+) [GeV];MM(e' #pi^{+}) [GeV]",200,0,3,200,0,3);
   auto* hkaon_pion_lowback=new TH2F("hkaon_pion_lowback","kaon vs pion;MM(e'K+) [GeV];MM(e' #pi^{+}) [GeV]",200,0,3,200,0,3);
   auto* hkaon_pion_highback=new TH2F("hkaon_pion_highback","kaon vs pion;MM(e'K+) [GeV];MM(e' #pi^{+}) [GeV]",200,0,3,200,0,3);
-
+  auto* h_delta_beta_kp=new TH2F("h_delta_beta_kp","",200,0,11,200,-1,1);
+  auto* h_delta_beta_pr=new TH2F("h_delta_beta_pr","",200,0,11,200,-1,1);
+  auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
 
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
@@ -290,10 +293,10 @@ void Strangeness_1_Exclusive_RGA_v1(){
   Double_t c=30;  // Speed of light used for calculating vertex time
 
   // Reads the total number of entries in the TTree
-  // Long64_t nentries = t1->GetEntries();
+  Long64_t nentries = t1->GetEntries();
   // cout<<nentries<<endl;
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 1000000;
+  // Long64_t nentries = 1000000;
 
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
@@ -643,7 +646,8 @@ void Strangeness_1_Exclusive_RGA_v1(){
     if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
 
       // Select which region you want the particles to go in
-      if(v_region_kp.at(0) > 0.5 && v_region_kp.at(0) < 1.8 && v_region_pr.at(0) > 0.5 && v_region_pr.at(0) < 1.8){
+      // if(v_region_kp.at(0) == 1 && v_region_pr.at(0) == 1 && v_region_pim.at(0) == 1){
+
         // Missing mass of e' K^{+}, looking for lambda ground state
         miss1 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0);
         // Missing mass of e' K^{+} p, looking for pi^{-}
@@ -652,12 +656,39 @@ void Strangeness_1_Exclusive_RGA_v1(){
         miss3 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pr.at(0);
         // missing mass assuming kaon is pion
         misspion = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pip.at(0);
+        // Invariant mass of p pi^{-}, looking for lambda ground state
+        lambda = v_pr.at(0) + v_pim.at(0);
+        // Missing mass of all detected particles, should have peak at 0
+        missall = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0) - v_pim.at(0);
 
         // Filling missing mass histograms
         hmass_kp->Fill(mass_kp);
         hmiss_1->Fill(miss1.M());
         hmiss_2->Fill(miss2.M2());
         hmiss_3->Fill(miss3.M());
+
+        // Checking the delta beta for each particle
+        h_delta_beta_kp->Fill(v_kp.at(0).Rho(),v_delta_beta_kp.at(0));
+        h_delta_beta_pr->Fill(v_pr.at(0).Rho(),v_delta_beta_pr.at(0));
+        h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
+
+
+
+        // Looking at the angular distribution of detected pi^{-}
+        hangular_distribution_momentum_detected->Fill(v_pim.at(0).Rho(), v_pim.at(0).Theta()*TMath::RadToDeg());
+        // Invariant against missing mass of lambda
+        hinv_missing_lambda->Fill(lambda.M(),miss1.M());
+        // Filling invariant and missing mass histograms
+        hinv_lambda->Fill(lambda.M());
+        hmiss_mass_all->Fill(missall.M2());
+        hmiss_momentum_all->Fill(missall.Rho());
+
+        if(lambda.M() < 1.14){
+          hmiss_1_2->Fill(miss1.M());
+
+
+
+
         if(miss3.M()> 0.9 && miss3.M() < 1.1) hmiss_1_phi->Fill(miss1.M());
         // Looking at the sidebands from the mass of kaons
         if(mass_kp > 0.454404 && mass_kp < 0.535267){
@@ -675,39 +706,8 @@ void Strangeness_1_Exclusive_RGA_v1(){
            hkaon_pion_lowback->Fill(miss1.M(),misspion.M());
 
          }
-
-        // Cut around the missing mass of the lambda and of the pion
-        if(miss1.M() > 0.9 && miss1.M() < 1.3 && miss2.M2() > -0.1 && miss2.M2() < 0.1){
-
-          // Looking at the angular distribution for unidentified negative particles
-          if(v_unidentified_neg.size()>0){
-            lambda_unid = v_pr.at(0) + v_unidentified_neg.at(0);
-            hangular_distribution_momentum_unidentified->Fill(v_unidentified_neg.at(0).Rho(), v_unidentified_neg.at(0).Theta()*TMath::RadToDeg());
-
-            hinv_lambda->Fill(lambda_unid.M());
-          }
-          // Looking at the angular distribution of the reconstructed pi^{-} to compare with unidentified and detected
-          hangular_distribution_momentum_reconstructed->Fill(miss2.Rho(), miss2.Theta()*TMath::RadToDeg());
-
-          // Selecting events where the pion is also detected
-          if(v_pim.size()==1){
-            // Invariant mass of p pi^{-}, looking for lambda ground state
-            lambda = v_pr.at(0) + v_pim.at(0);
-            // Missing mass of all detected particles, should have peak at 0
-            missall = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0) - v_pim.at(0);
-            // Looking at the angular distribution of detected pi^{-}
-            hangular_distribution_momentum_detected->Fill(v_pim.at(0).Rho(), v_pim.at(0).Theta()*TMath::RadToDeg());
-            // Invariant against missing mass of lambda
-            hinv_missing_lambda->Fill(lambda.M(),miss1.M());
-            // Filling invariant and missing mass histograms
-            hinv_lambda->Fill(lambda.M());
-            hmiss_mass_all->Fill(missall.M2());
-            hmiss_momentum_all->Fill(missall.Rho());
-            Hello 
-
-          } // exclusive events with pi^{-} detected
-        } // cuts around missing mass of the lambda and pion
-      } // Selecting events with kaons and protons hitting FD
+       }
+      // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
   } // Event loop
   fileOutput1.Write(); // Save root file
