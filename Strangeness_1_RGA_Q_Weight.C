@@ -80,7 +80,7 @@ void Strangeness_1_RGA_Q_Weight(){
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Path and name for the output file to save
-  TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/Strangeness_1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_190521_01.root","recreate");
+  // TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/Strangeness_1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_200521_01.root","recreate");
 
 
   // Getting particle database to use for masses
@@ -110,6 +110,8 @@ void Strangeness_1_RGA_Q_Weight(){
   auto* h_delta_beta_kp=new TH2F("h_delta_beta_kp","",200,0,11,200,-1,1);
   auto* h_delta_beta_pr=new TH2F("h_delta_beta_pr","",200,0,11,200,-1,1);
   auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
+  auto* h_photon_energy=new TH1F("h_photon_energy","",400,0,11);
+  auto* h_cos_theta_kaonp=new TH1F("h_cos_theta_kaonp","",400,-2,2);
 
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
@@ -125,6 +127,7 @@ void Strangeness_1_RGA_Q_Weight(){
   vector<TLorentzVector> v_km; // K^-
   vector<TLorentzVector> v_unidentified_neg; // Particles with a PID of 0
   vector<TLorentzVector> v_othertracks; // Any other particles are assigned to this
+  TLorentzVector kaon_boost_com; // kaon boosted in the COM reference frame
 
   // TLorentzVectors for individual particles
   TLorentzVector el;
@@ -157,7 +160,10 @@ void Strangeness_1_RGA_Q_Weight(){
   TLorentzVector miss2;
   TLorentzVector miss3;
   TLorentzVector lambda;
+  TLorentzVector photon;
   TLorentzVector lambda_unid;
+  TLorentzVector COM;
+  TVector3 COM_3;
 
 
   // After information is read from the TTree, particles are identified using
@@ -296,7 +302,7 @@ void Strangeness_1_RGA_Q_Weight(){
   Long64_t nentries = t1->GetEntries();
   // cout<<nentries<<endl;
   // You can just run over a set number of events for fast analysis
-  // Long64_t nentries = 1000000;
+  // Long64_t nentries = 100000;
 
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
@@ -304,6 +310,9 @@ void Strangeness_1_RGA_Q_Weight(){
   // This loops over all the entries in the TTree
   for(Long64_t i=0; i<nentries;i++){
     t1->GetEntry(i);
+    cout<<v_p4->at(0).Px()<<endl;
+    t1->GetEntry(i+5);
+    cout<<v_p4->at(0).Px()<<endl;
 
     // This prints out the percentage of events completed so far
     if (i % Percentage == 0){
@@ -660,6 +669,10 @@ void Strangeness_1_RGA_Q_Weight(){
         lambda = v_pr.at(0) + v_pim.at(0);
         // Missing mass of all detected particles, should have peak at 0
         missall = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0) - v_pim.at(0);
+        // Determining the photon TLorentzVector
+        photon = (TLorentzVector)*readbeam - v_el.at(0);
+        // COM used for boosting
+        COM = v_el.at(0) + v_kp.at(0) + v_pr.at(0) + v_pim.at(0);
 
         // Filling missing mass histograms
         hmass_kp->Fill(mass_kp);
@@ -673,6 +686,17 @@ void Strangeness_1_RGA_Q_Weight(){
         h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
 
 
+        // Boosting the kaon in COM reference frame
+        COM_3 = COM.BoostVector();
+        kaon_boost_com = v_kp.at(0);
+        kaon_boost_com.Boost(-1.0*COM_3);
+
+        // Plotting the cos(theta) distribution of K+
+        h_cos_theta_kaonp->Fill(cos(kaon_boost_com.Theta()));
+        // cout<<kaon_boost_com.Theta()<<endl;
+
+        // Plotting the photon energy
+        h_photon_energy->Fill(photon.E());
 
         // Looking at the angular distribution of detected pi^{-}
         hangular_distribution_momentum_detected->Fill(v_pim.at(0).Rho(), v_pim.at(0).Theta()*TMath::RadToDeg());
@@ -710,5 +734,7 @@ void Strangeness_1_RGA_Q_Weight(){
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
   } // Event loop
-  fileOutput1.Write(); // Save root file
+
+
+  // fileOutput1.Write(); // Save root file
 }
