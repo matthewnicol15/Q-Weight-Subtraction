@@ -6,6 +6,7 @@
 #include <TROOT.h>
 #include <TDatabasePDG.h>
 #include <TLorentzVector.h>
+#include <TF1.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TChain.h>
@@ -24,8 +25,38 @@ void Strangeness_1_RGA_Q_Weight(){
   // Read TTree within root file and assign it to 't1'
   TTree *t1 = (TTree*)f->Get("RGA_Skim4_Tree_200420_01");
 
-Int_t Good=0; // COunt number of events passing cuts
+  Int_t Good=0; // COunt number of events passing cuts
 
+  // Functions to fit Q weight plots
+  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.7,1.6);
+  auto* func2=new TF1("func2","gaus(0)",0.7,1.6);
+  auto* func3=new TF1("func3","pol3(0)",0.7,1.6);
+
+  // Functions to fit Q weight plots
+  auto* func4=new TF1("func4","gaus(0)+pol2(3)",0.7,1.6);
+  auto* func5=new TF1("func5","gaus(0)",0.7,1.6);
+  auto* func6=new TF1("func6","pol2(0)",0.7,1.6);
+
+  // Setting parameters before fitting for 3rd order polynomial and gaus
+  func1->SetParameter(0,25);
+  func1->SetParameter(1,1.116);
+  func1->SetParameter(2,0.05);
+  func1->SetParameter(3,-7);
+  func1->SetParameter(4,11);
+  func1->SetParameter(5,0);
+
+  // Setting parameters before fitting for 2nd order polynomial and gaus
+  func4->SetParameter(0,25);
+  func4->SetParameter(1,1.116);
+  func4->SetParameter(2,0.05);
+  func4->SetParameter(3,-7);
+  func4->SetParameter(4,11);
+  func4->SetParameter(5,0);
+
+  // Integrals to calculate Q weights
+  Double_t sig_1=-100, back_1=10, sig_2=-100, back_2=10;
+  // Q weights
+  Double_t Q_Weight_1a=-10, Q_Weight_1b=-10, Q_Weight_2a=-10, Q_Weight_2b=-10;
 
   // Creating components to read from TTree
   // Set any vectors to 0 before reading from the TTree
@@ -38,11 +69,6 @@ Int_t Good=0; // COunt number of events passing cuts
   Int_t readtriggerno;
   // Number of given particle or charge track in each event
   Int_t readchargetracks; // Number of positive or negative charge tracks
-  Int_t readprotonno; // Protons
-  Int_t readpipno; // pi^+
-  Int_t readpimno; // pi^-
-  Int_t readelno; // e^-
-  Int_t readkaonpno; // K^+
   Int_t readothertracks; // Number of particles excluding p, e^-, pions or kaons
   Int_t region; // which region the particles go in (FT, FD, CD)
 
@@ -73,17 +99,12 @@ Int_t Good=0; // COunt number of events passing cuts
   t1->SetBranchAddress("chi2PID",&v_chi2PID);
   t1->SetBranchAddress("region",&v_region);
   t1->SetBranchAddress("time",&v_time);
-  t1->SetBranchAddress("protonno",&readprotonno);
-  t1->SetBranchAddress("pipno",&readpipno);
-  t1->SetBranchAddress("pimno",&readpimno);
-  t1->SetBranchAddress("elno",&readelno);
-  t1->SetBranchAddress("kaonpno",&readkaonpno);
   t1->SetBranchAddress("eventno",&readeventno);
   t1->SetBranchAddress("runno",&readrunno);
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Path and name for the output file to save
-  TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_200521_01.root","recreate");
+  TFile* fileOutput1=new TFile("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_240521_01.root","recreate");
 
 
   // Getting particle database to use for masses
@@ -115,7 +136,7 @@ Int_t Good=0; // COunt number of events passing cuts
   auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
   auto* h_photon_energy=new TH1F("h_photon_energy","",400,0,11);
   auto* h_cos_theta_kaonp=new TH1F("h_cos_theta_kaonp","",400,-2,2);
-  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",200,-1,3);
+  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.5,2);
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
 
@@ -311,13 +332,15 @@ Int_t Good=0; // COunt number of events passing cuts
   // Reads the total number of entries in the TTree
   // Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 361;
+  Long64_t nentries = 2366;
 
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
 
   // This loops over all the entries in the TTree
   for(Long64_t i=0; i<nentries;i++){
+
+    // Get this entry from the TTree
     t1->GetEntry(i);
 
     // Clear nearest neighbour vectors
@@ -727,8 +750,14 @@ Int_t Good=0; // COunt number of events passing cuts
       if(lambda.M() < 1.14){
         hmiss_1_2->Fill(miss1.M());
         Good++;
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Determining nearest neighbours for Q weight calculations
+
+        // Only looking at nearest neighbours for events with good missing mass values
+        if(miss1.M() > 0.7 && miss1.M() < 1.6){
+
+
         Int_t size=0;
         // Loop over all other events
         for(Long64_t m = 0; m < 1000000; m++){
@@ -780,6 +809,8 @@ Int_t Good=0; // COunt number of events passing cuts
               photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
               // Determining the COM frame of reference
               COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
+
+              if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
 
               // Making the 3 vector for COM frame of reference
               COM_3_other = COM_other.BoostVector();
@@ -853,6 +884,55 @@ Int_t Good=0; // COunt number of events passing cuts
             }
           }
         }
+      }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Plotting and fitting the nearest neighbours
+
+        // If there are values for the nearest neighbours
+        if(v_NN_MM.size() > 0){
+          Int_t k = v_NN_MM.size();
+          // Loop over all the nearest neighbour values
+          for(Int_t q = 0; q < k; q++){
+            // Fill the histogram with the missing mass values for the nearest neighbours
+            h_miss1_NN->Fill(v_NN_MM.at(q));
+
+          }
+          h_miss1_NN->Sumw2();
+          h_miss1_NN->Fit("func1","RLE");
+
+          func2->FixParameter(0,func1->GetParameter(0));
+          func2->FixParameter(1,func1->GetParameter(1));
+          func2->FixParameter(2,func1->GetParameter(2));
+          func3->FixParameter(0,func1->GetParameter(3));
+          func3->FixParameter(1,func1->GetParameter(4));
+          func3->FixParameter(2,func1->GetParameter(5));
+          func3->FixParameter(3,func1->GetParameter(6));
+
+          h_miss1_NN->Fit("func4","RLE");
+          func5->FixParameter(0,func4->GetParameter(0));
+          func5->FixParameter(1,func4->GetParameter(1));
+          func5->FixParameter(2,func4->GetParameter(2));
+          func6->FixParameter(0,func4->GetParameter(3));
+          func6->FixParameter(1,func4->GetParameter(4));
+          func6->FixParameter(2,func4->GetParameter(5));
+
+          sig_1 = func2->Integral(0,100);
+          back_1 = func3->Integral(0,100);
+          sig_2 = func5->Integral(0,100);
+          back_2 = func6->Integral(0,100);
+          cout<<sig_1<<" "<<back_1<<" "<<endl;
+
+        //   Q_Weight_1a = sig_1 / (sig_1 + back_1);
+        //   Q_Weight_1b = 1 - (back_1 / h_miss1_NN->Integral(0,100));
+        //
+        //   Q_Weight_2a = sig_2 / (sig_2 + back_2);
+        //   Q_Weight_2b = 1 - (back_1 / h_miss1_NN->Integral(0,100));
+        //   cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<endl;
+        // }
+        //
+        // // Setting Q weight to 0 for events without "good" missing masses
+        // // else Q_Weight = 0;
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -880,7 +960,21 @@ Int_t Good=0; // COunt number of events passing cuts
 
     // for(int l=0;l<100;l++) cout<<v_NN_d.at(l)<<endl;
   } // Event loop
+  auto *c1=new TCanvas("c1","",800,800);
+  h_miss1_NN->Draw();
+  func2->SetLineColor(kBlue);
+  func3->SetLineColor(kGreen);
+  func1->Draw("same");
+  func2->Draw("same");
+  func3->Draw("same");
 
+  auto *c2=new TCanvas("c2","",800,800);
+  h_miss1_NN->Draw();
+  func5->SetLineColor(kBlue);
+  func6->SetLineColor(kGreen);
+  func4->Draw("same");
+  func5->Draw("same");
+  func6->Draw("same");
 
-  fileOutput1.Write(); // Save root file
+  fileOutput1->Write(); // Save root file
 }
