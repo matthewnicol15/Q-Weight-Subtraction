@@ -11,6 +11,7 @@
 #include <TChain.h>
 #include <TBenchmark.h>
 #include <vector>
+#include <TCanvas.h>
 
 // Macro name
 void Strangeness_1_RGA_Q_Weight(){
@@ -22,6 +23,8 @@ void Strangeness_1_RGA_Q_Weight(){
   TFile *f = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_e_Kp_FD_Tree_200421_01.root");
   // Read TTree within root file and assign it to 't1'
   TTree *t1 = (TTree*)f->Get("RGA_Skim4_Tree_200420_01");
+
+Int_t Good=0; // COunt number of events passing cuts
 
 
   // Creating components to read from TTree
@@ -80,7 +83,7 @@ void Strangeness_1_RGA_Q_Weight(){
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Path and name for the output file to save
-  // TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/Strangeness_1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_200521_01.root","recreate");
+  TFile fileOutput1("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_200521_01.root","recreate");
 
 
   // Getting particle database to use for masses
@@ -112,29 +115,36 @@ void Strangeness_1_RGA_Q_Weight(){
   auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
   auto* h_photon_energy=new TH1F("h_photon_energy","",400,0,11);
   auto* h_cos_theta_kaonp=new TH1F("h_cos_theta_kaonp","",400,-2,2);
-
+  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",200,-1,3);
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
 
   // Create vectors of TLorentzVectors to store information of
   // all particles of a given type (important when you have more than 1
   // of any particle in the same event)
-  vector<TLorentzVector> v_el;  // e^-
+  vector<TLorentzVector> v_el, v_el_other;  // e^-
   vector<TLorentzVector> v_pip; // pi^+
-  vector<TLorentzVector> v_pim; // pi^-
-  vector<TLorentzVector> v_pr; // protons
-  vector<TLorentzVector> v_kp; // K^+
+  vector<TLorentzVector> v_pim, v_pim_other; // pi^-
+  vector<TLorentzVector> v_pr, v_pr_other; // protons
+  vector<TLorentzVector> v_kp, v_kp_other; // K^+
   vector<TLorentzVector> v_km; // K^-
   vector<TLorentzVector> v_unidentified_neg; // Particles with a PID of 0
   vector<TLorentzVector> v_othertracks; // Any other particles are assigned to this
-  TLorentzVector kaon_boost_com; // kaon boosted in the COM reference frame
+
+  // Q weight values
+  TLorentzVector kaon_boost_com, kaon_boost_com_other; // kaon boosted in the COM reference frame
+  Double_t Cos_Theta_Kp_COM, Cos_Theta_Kp_COM_other; // cos theta of kaons in COM frame
+  Double_t photon_energy, photon_energy_other; // photon energy
+  Double_t distance; // distance between missing mass points for Q weights
+  Double_t cos_theta_range = 2, photon_energy_range = 8; // Ranges of values for cos theta and photon energy
+  vector<Double_t> v_NN_d, v_NN_MM; // vectors containing information on the nearest neighbours
 
   // TLorentzVectors for individual particles
-  TLorentzVector el;
+  TLorentzVector el, el_other;
   TLorentzVector pip;
-  TLorentzVector pim;
-  TLorentzVector pr;
-  TLorentzVector kp;
+  TLorentzVector pim, pim_other;
+  TLorentzVector pr, pr_other;
+  TLorentzVector kp, kp_other;
   TLorentzVector km;
   TLorentzVector othertracks;
   TLorentzVector unidentified_neg;
@@ -155,15 +165,15 @@ void Strangeness_1_RGA_Q_Weight(){
 
   // These are used to define the missing masses later
   TLorentzVector missall;
-  TLorentzVector miss1;
+  TLorentzVector miss1, miss1_other;
   TLorentzVector misspion;
   TLorentzVector miss2;
   TLorentzVector miss3;
-  TLorentzVector lambda;
-  TLorentzVector photon;
+  TLorentzVector lambda, Lambda_other;
+  TLorentzVector photon, photon_other;
   TLorentzVector lambda_unid;
-  TLorentzVector COM;
-  TVector3 COM_3;
+  TLorentzVector COM, COM_other;
+  TVector3 COM_3, COM_3_other;
 
 
   // After information is read from the TTree, particles are identified using
@@ -299,10 +309,9 @@ void Strangeness_1_RGA_Q_Weight(){
   Double_t c=30;  // Speed of light used for calculating vertex time
 
   // Reads the total number of entries in the TTree
-  Long64_t nentries = t1->GetEntries();
-  // cout<<nentries<<endl;
+  // Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  // Long64_t nentries = 100000;
+  Long64_t nentries = 361;
 
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
@@ -310,15 +319,17 @@ void Strangeness_1_RGA_Q_Weight(){
   // This loops over all the entries in the TTree
   for(Long64_t i=0; i<nentries;i++){
     t1->GetEntry(i);
-    cout<<v_p4->at(0).Px()<<endl;
-    t1->GetEntry(i+5);
-    cout<<v_p4->at(0).Px()<<endl;
+
+    // Clear nearest neighbour vectors
+    v_NN_d.clear();
+    v_NN_MM.clear();
+
 
     // This prints out the percentage of events completed so far
-    if (i % Percentage == 0){
-      fprintf (stderr, "%lld\r", i/Percentage);
-      fflush (stderr);
-    }
+    // if (i % Percentage == 0){
+    //   fprintf (stderr, "%lld\r", i/Percentage);
+    //   fflush (stderr);
+    // }
 
     // All the vectors must be cleared at the start of each event entry
     // e^-
@@ -654,71 +665,203 @@ void Strangeness_1_RGA_Q_Weight(){
     // Here you can apply conditions on the events you want to analyse
     if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
 
+
+
       // Select which region you want the particles to go in
       // if(v_region_kp.at(0) == 1 && v_region_pr.at(0) == 1 && v_region_pim.at(0) == 1){
 
-        // Missing mass of e' K^{+}, looking for lambda ground state
-        miss1 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0);
-        // Missing mass of e' K^{+} p, looking for pi^{-}
-        miss2 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0);
-        // Missing mass of e', looking for phi meson background
-        miss3 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pr.at(0);
-        // missing mass assuming kaon is pion
-        misspion = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pip.at(0);
-        // Invariant mass of p pi^{-}, looking for lambda ground state
-        lambda = v_pr.at(0) + v_pim.at(0);
-        // Missing mass of all detected particles, should have peak at 0
-        missall = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0) - v_pim.at(0);
-        // Determining the photon TLorentzVector
-        photon = (TLorentzVector)*readbeam - v_el.at(0);
-        // COM used for boosting
-        COM = v_el.at(0) + v_kp.at(0) + v_pr.at(0) + v_pim.at(0);
+      // Missing mass of e' K^{+}, looking for lambda ground state
+      miss1 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0);
+      // Missing mass of e' K^{+} p, looking for pi^{-}
+      miss2 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0);
+      // Missing mass of e', looking for phi meson background
+      miss3 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pr.at(0);
+      // missing mass assuming kaon is pion
+      misspion = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pip.at(0);
+      // Invariant mass of p pi^{-}, looking for lambda ground state
+      lambda = v_pr.at(0) + v_pim.at(0);
+      // Missing mass of all detected particles, should have peak at 0
+      missall = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0) - v_pim.at(0);
+      // Determining the photon TLorentzVector
+      photon = (TLorentzVector)*readbeam - v_el.at(0);
+      // COM used for boosting
+      COM = v_el.at(0) + v_kp.at(0) + v_pr.at(0) + v_pim.at(0);
 
-        // Filling missing mass histograms
-        hmass_kp->Fill(mass_kp);
-        hmiss_1->Fill(miss1.M());
-        hmiss_2->Fill(miss2.M2());
-        hmiss_3->Fill(miss3.M());
+      // Filling missing mass histograms
+      hmass_kp->Fill(mass_kp);
+      hmiss_1->Fill(miss1.M());
+      hmiss_2->Fill(miss2.M2());
+      hmiss_3->Fill(miss3.M());
 
-        // Checking the delta beta for each particle
-        h_delta_beta_kp->Fill(v_kp.at(0).Rho(),v_delta_beta_kp.at(0));
-        h_delta_beta_pr->Fill(v_pr.at(0).Rho(),v_delta_beta_pr.at(0));
-        h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
-
-
-        // Boosting the kaon in COM reference frame
-        COM_3 = COM.BoostVector();
-        kaon_boost_com = v_kp.at(0);
-        kaon_boost_com.Boost(-1.0*COM_3);
-
-        // Plotting the cos(theta) distribution of K+
-        h_cos_theta_kaonp->Fill(cos(kaon_boost_com.Theta()));
-        // cout<<kaon_boost_com.Theta()<<endl;
-
-        // Plotting the photon energy
-        h_photon_energy->Fill(photon.E());
-
-        // Looking at the angular distribution of detected pi^{-}
-        hangular_distribution_momentum_detected->Fill(v_pim.at(0).Rho(), v_pim.at(0).Theta()*TMath::RadToDeg());
-        // Invariant against missing mass of lambda
-        hinv_missing_lambda->Fill(lambda.M(),miss1.M());
-        // Filling invariant and missing mass histograms
-        hinv_lambda->Fill(lambda.M());
-        hmiss_mass_all->Fill(missall.M2());
-        hmiss_momentum_all->Fill(missall.Rho());
-
-        if(lambda.M() < 1.14){
-          hmiss_1_2->Fill(miss1.M());
+      // Checking the delta beta for each particle
+      h_delta_beta_kp->Fill(v_kp.at(0).Rho(),v_delta_beta_kp.at(0));
+      h_delta_beta_pr->Fill(v_pr.at(0).Rho(),v_delta_beta_pr.at(0));
+      h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
 
 
+      // Boosting the kaon in COM reference frame
+      COM_3 = COM.BoostVector();
+      kaon_boost_com = v_kp.at(0);
+      kaon_boost_com.Boost(-1.0*COM_3);
+
+      // Calculating cos theta for boosted kaon
+      Cos_Theta_Kp_COM = cos(kaon_boost_com.Theta());
+
+      // Plotting the cos(theta) distribution of K+
+      h_cos_theta_kaonp->Fill(Cos_Theta_Kp_COM);
+
+      // Getting the photon energy
+      photon_energy = photon.E();
+      // Plotting the photon energy
+      h_photon_energy->Fill(photon_energy);
+
+      // Looking at the angular distribution of detected pi^{-}
+      hangular_distribution_momentum_detected->Fill(v_pim.at(0).Rho(), v_pim.at(0).Theta()*TMath::RadToDeg());
+      // Invariant against missing mass of lambda
+      hinv_missing_lambda->Fill(lambda.M(),miss1.M());
+      // Filling invariant and missing mass histograms
+      hinv_lambda->Fill(lambda.M());
+      hmiss_mass_all->Fill(missall.M2());
+      hmiss_momentum_all->Fill(missall.Rho());
+
+      if(lambda.M() < 1.14){
+        hmiss_1_2->Fill(miss1.M());
+        Good++;
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Determining nearest neighbours for Q weight calculations
+        Int_t size=0;
+        // Loop over all other events
+        for(Long64_t m = 0; m < 1000000; m++){
+          if(m==i)continue;
+
+          // Gets information on event m
+          t1->GetEntry(m);
+
+          v_el_other.clear();
+          v_kp_other.clear();
+          v_pr_other.clear();
+          v_pim_other.clear();
+
+          Int_t Nparticles_other = v_p4->size();
+
+          // This loops over all the particles in the current entry
+          for(Int_t p=0; p<Nparticles_other; p++){
+            if(v_PID->at(p) == 11){
+              el_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(11)->Mass());
+              v_el_other.push_back(el_other);
+            }
+            else if(v_PID->at(p) == 321){
+              kp_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(321)->Mass());
+              v_kp_other.push_back(kp_other);
+            }
+            else if(v_PID->at(p) == 2212){
+              pr_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(2212)->Mass());
+              v_pr_other.push_back(pr_other);
+            }
+            else if(v_PID->at(p) == -211){
+              pim_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(-211)->Mass());
+              v_pim_other.push_back(pim_other);
+            }
+          }
+
+          // Checking for events with 1 K+, 1 e-, 1 proton and 1 pi-
+          if(v_el_other.size() == 1 && v_kp_other.size() == 1 && v_pr_other.size() == 1 && v_pim_other.size() == 1){
+
+            // Invariant mass of proton pi^-
+            Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
+
+            // Checking if event has invariant mass close to that of ground state lambda
+            if(Lambda_other.M() < 1.14){
+              // cout<<i<<" "<<v_NN_d.size()<<endl;
+
+              // Missing mass of e' K^{+}, looking for lambda ground state
+              miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
+              // Determining the four vector for the photon
+              photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
+              // Determining the COM frame of reference
+              COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
+
+              // Making the 3 vector for COM frame of reference
+              COM_3_other = COM_other.BoostVector();
+              // Getting the kaon information before boosting
+              kaon_boost_com_other = v_kp_other.at(0);
+              // Boosting the other kaon into COM frame of reference
+              kaon_boost_com_other.Boost(COM_3_other);
+
+              // Get cos theta and gamma energy here
+              Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
+              photon_energy_other = photon_other.E();
+              // Calculate difference between cos thetas
+              distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
+              pow((photon_energy - photon_energy_other) / photon_energy_range,2));
+
+              // If there are no entries yet then just push back the values
+              if(v_NN_d.size()<1){
+                v_NN_d.push_back(distance);
+                v_NN_MM.push_back(miss1_other.M());
+
+              }
+              // If there are entries
+              else{
+
+                // Loop over current stored nearest neighbours, starting at largest distance
+                for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
+
+                  // Skip events with distance greater than the max in vector if there are already 500
+                  if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
+
+
+
+                  // Creating iterator for beginning of vector for smallest distance
+                  vector<double>::iterator itPos2 = v_NN_d.begin();
+                  vector<double>::iterator itPos2MM = v_NN_MM.begin();
+
+                  if(distance < v_NN_d.at(0)){
+
+                    // Inserting values into vector of nearest neighbours
+                    v_NN_d.insert(itPos2, distance);
+                    v_NN_MM.insert(itPos2MM, miss1_other.M());
+
+                    // Removing the largest value if there are over 500 in the vector
+                    if(v_NN_d.size()==501) v_NN_d.pop_back();
+                    if(v_NN_MM.size()==501) v_NN_MM.pop_back();
+
+                    break;
+                  }
+
+
+
+                  // Checking if distance is larger than the current value in vector
+                  if(distance > v_NN_d.at(k)){
+
+                    // Creating iterator for the position to insert distance into vector
+                    vector<double>::iterator itPos = v_NN_d.begin() + k + 1;
+                    vector<double>::iterator itPosMM = v_NN_MM.begin() + k + 1;
+
+                    // Pushing back values to the next position
+                    v_NN_d.insert(itPos, distance);
+                    v_NN_MM.insert(itPosMM, miss1_other.M());
+
+                    // Removing the largest value if there are over 500 in the vector
+                    if(v_NN_d.size()==501) v_NN_d.pop_back();
+                    if(v_NN_MM.size()==501) v_NN_MM.pop_back();
+
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
         if(miss3.M()> 0.9 && miss3.M() < 1.1) hmiss_1_phi->Fill(miss1.M());
         // Looking at the sidebands from the mass of kaons
         if(mass_kp > 0.454404 && mass_kp < 0.535267){
-           hmiss_1_sig->Fill(miss1.M());
-           hkaon_pion_sig->Fill(miss1.M(),misspion.M());
-         }
+          hmiss_1_sig->Fill(miss1.M());
+          hkaon_pion_sig->Fill(miss1.M(),misspion.M());
+        }
 
         else if(mass_kp > 0.575698 && mass_kp < 0.616129){
           hmiss_1_back->Fill(miss1.M());
@@ -726,15 +869,18 @@ void Strangeness_1_RGA_Q_Weight(){
 
         }
         else if(mass_kp > 0.373542 && mass_kp < 0.413973){
-           hmiss_1_back->Fill(miss1.M());
-           hkaon_pion_lowback->Fill(miss1.M(),misspion.M());
+          hmiss_1_back->Fill(miss1.M());
+          hkaon_pion_lowback->Fill(miss1.M(),misspion.M());
 
-         }
-       }
+        }
+      }
+
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
+
+    // for(int l=0;l<100;l++) cout<<v_NN_d.at(l)<<endl;
   } // Event loop
 
 
-  // fileOutput1.Write(); // Save root file
+  fileOutput1.Write(); // Save root file
 }
