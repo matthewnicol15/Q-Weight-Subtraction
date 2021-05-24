@@ -136,7 +136,11 @@ void Strangeness_1_RGA_Q_Weight(){
   auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
   auto* h_photon_energy=new TH1F("h_photon_energy","",400,0,11);
   auto* h_cos_theta_kaonp=new TH1F("h_cos_theta_kaonp","",400,-2,2);
-  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.5,2);
+  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.7,1.6);
+  auto* h_miss1_Qweights_1a=new TH1F("h_miss1_Qweights_1a","Q weights missing mass",10000,0.7,1.6);
+  auto* h_miss1_Qweights_1b=new TH1F("h_miss1_Qweights_1b","Q weights missing mass",10000,0.7,1.6);
+  auto* h_miss1_Qweights_2a=new TH1F("h_miss1_Qweights_2a","Q weights missing mass",10000,0.7,1.6);
+  auto* h_miss1_Qweights_2b=new TH1F("h_miss1_Qweights_2b","Q weights missing mass",10000,0.7,1.6);
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
 
@@ -758,133 +762,133 @@ void Strangeness_1_RGA_Q_Weight(){
         if(miss1.M() > 0.7 && miss1.M() < 1.6){
 
 
-        Int_t size=0;
-        // Loop over all other events
-        for(Long64_t m = 0; m < 1000000; m++){
-          if(m==i)continue;
+          Int_t size=0;
+          // Loop over all other events
+          for(Long64_t m = 0; m < 1000000; m++){
+            if(m==i)continue;
 
-          // Gets information on event m
-          t1->GetEntry(m);
+            // Gets information on event m
+            t1->GetEntry(m);
 
-          v_el_other.clear();
-          v_kp_other.clear();
-          v_pr_other.clear();
-          v_pim_other.clear();
+            v_el_other.clear();
+            v_kp_other.clear();
+            v_pr_other.clear();
+            v_pim_other.clear();
 
-          Int_t Nparticles_other = v_p4->size();
+            Int_t Nparticles_other = v_p4->size();
 
-          // This loops over all the particles in the current entry
-          for(Int_t p=0; p<Nparticles_other; p++){
-            if(v_PID->at(p) == 11){
-              el_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(11)->Mass());
-              v_el_other.push_back(el_other);
-            }
-            else if(v_PID->at(p) == 321){
-              kp_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(321)->Mass());
-              v_kp_other.push_back(kp_other);
-            }
-            else if(v_PID->at(p) == 2212){
-              pr_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(2212)->Mass());
-              v_pr_other.push_back(pr_other);
-            }
-            else if(v_PID->at(p) == -211){
-              pim_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(-211)->Mass());
-              v_pim_other.push_back(pim_other);
-            }
-          }
-
-          // Checking for events with 1 K+, 1 e-, 1 proton and 1 pi-
-          if(v_el_other.size() == 1 && v_kp_other.size() == 1 && v_pr_other.size() == 1 && v_pim_other.size() == 1){
-
-            // Invariant mass of proton pi^-
-            Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
-
-            // Checking if event has invariant mass close to that of ground state lambda
-            if(Lambda_other.M() < 1.14){
-              // cout<<i<<" "<<v_NN_d.size()<<endl;
-
-              // Missing mass of e' K^{+}, looking for lambda ground state
-              miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
-              // Determining the four vector for the photon
-              photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
-              // Determining the COM frame of reference
-              COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
-
-              if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
-
-              // Making the 3 vector for COM frame of reference
-              COM_3_other = COM_other.BoostVector();
-              // Getting the kaon information before boosting
-              kaon_boost_com_other = v_kp_other.at(0);
-              // Boosting the other kaon into COM frame of reference
-              kaon_boost_com_other.Boost(COM_3_other);
-
-              // Get cos theta and gamma energy here
-              Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
-              photon_energy_other = photon_other.E();
-              // Calculate difference between cos thetas
-              distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
-              pow((photon_energy - photon_energy_other) / photon_energy_range,2));
-
-              // If there are no entries yet then just push back the values
-              if(v_NN_d.size()<1){
-                v_NN_d.push_back(distance);
-                v_NN_MM.push_back(miss1_other.M());
-
+            // This loops over all the particles in the current entry
+            for(Int_t p=0; p<Nparticles_other; p++){
+              if(v_PID->at(p) == 11){
+                el_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(11)->Mass());
+                v_el_other.push_back(el_other);
               }
-              // If there are entries
-              else{
+              else if(v_PID->at(p) == 321){
+                kp_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(321)->Mass());
+                v_kp_other.push_back(kp_other);
+              }
+              else if(v_PID->at(p) == 2212){
+                pr_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(2212)->Mass());
+                v_pr_other.push_back(pr_other);
+              }
+              else if(v_PID->at(p) == -211){
+                pim_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(-211)->Mass());
+                v_pim_other.push_back(pim_other);
+              }
+            }
 
-                // Loop over current stored nearest neighbours, starting at largest distance
-                for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
+            // Checking for events with 1 K+, 1 e-, 1 proton and 1 pi-
+            if(v_el_other.size() == 1 && v_kp_other.size() == 1 && v_pr_other.size() == 1 && v_pim_other.size() == 1){
 
-                  // Skip events with distance greater than the max in vector if there are already 500
-                  if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
+              // Invariant mass of proton pi^-
+              Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
+
+              // Checking if event has invariant mass close to that of ground state lambda
+              if(Lambda_other.M() < 1.14){
+                // cout<<i<<" "<<v_NN_d.size()<<endl;
+
+                // Missing mass of e' K^{+}, looking for lambda ground state
+                miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
+                // Determining the four vector for the photon
+                photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
+                // Determining the COM frame of reference
+                COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
+
+                if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
+
+                // Making the 3 vector for COM frame of reference
+                COM_3_other = COM_other.BoostVector();
+                // Getting the kaon information before boosting
+                kaon_boost_com_other = v_kp_other.at(0);
+                // Boosting the other kaon into COM frame of reference
+                kaon_boost_com_other.Boost(COM_3_other);
+
+                // Get cos theta and gamma energy here
+                Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
+                photon_energy_other = photon_other.E();
+                // Calculate difference between cos thetas
+                distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
+                pow((photon_energy - photon_energy_other) / photon_energy_range,2));
+
+                // If there are no entries yet then just push back the values
+                if(v_NN_d.size()<1){
+                  v_NN_d.push_back(distance);
+                  v_NN_MM.push_back(miss1_other.M());
+
+                }
+                // If there are entries
+                else{
+
+                  // Loop over current stored nearest neighbours, starting at largest distance
+                  for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
+
+                    // Skip events with distance greater than the max in vector if there are already 500
+                    if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
 
 
 
-                  // Creating iterator for beginning of vector for smallest distance
-                  vector<double>::iterator itPos2 = v_NN_d.begin();
-                  vector<double>::iterator itPos2MM = v_NN_MM.begin();
+                    // Creating iterator for beginning of vector for smallest distance
+                    vector<double>::iterator itPos2 = v_NN_d.begin();
+                    vector<double>::iterator itPos2MM = v_NN_MM.begin();
 
-                  if(distance < v_NN_d.at(0)){
+                    if(distance < v_NN_d.at(0)){
 
-                    // Inserting values into vector of nearest neighbours
-                    v_NN_d.insert(itPos2, distance);
-                    v_NN_MM.insert(itPos2MM, miss1_other.M());
+                      // Inserting values into vector of nearest neighbours
+                      v_NN_d.insert(itPos2, distance);
+                      v_NN_MM.insert(itPos2MM, miss1_other.M());
 
-                    // Removing the largest value if there are over 500 in the vector
-                    if(v_NN_d.size()==501) v_NN_d.pop_back();
-                    if(v_NN_MM.size()==501) v_NN_MM.pop_back();
+                      // Removing the largest value if there are over 500 in the vector
+                      if(v_NN_d.size()==501) v_NN_d.pop_back();
+                      if(v_NN_MM.size()==501) v_NN_MM.pop_back();
 
-                    break;
-                  }
+                      break;
+                    }
 
 
 
-                  // Checking if distance is larger than the current value in vector
-                  if(distance > v_NN_d.at(k)){
+                    // Checking if distance is larger than the current value in vector
+                    if(distance > v_NN_d.at(k)){
 
-                    // Creating iterator for the position to insert distance into vector
-                    vector<double>::iterator itPos = v_NN_d.begin() + k + 1;
-                    vector<double>::iterator itPosMM = v_NN_MM.begin() + k + 1;
+                      // Creating iterator for the position to insert distance into vector
+                      vector<double>::iterator itPos = v_NN_d.begin() + k + 1;
+                      vector<double>::iterator itPosMM = v_NN_MM.begin() + k + 1;
 
-                    // Pushing back values to the next position
-                    v_NN_d.insert(itPos, distance);
-                    v_NN_MM.insert(itPosMM, miss1_other.M());
+                      // Pushing back values to the next position
+                      v_NN_d.insert(itPos, distance);
+                      v_NN_MM.insert(itPosMM, miss1_other.M());
 
-                    // Removing the largest value if there are over 500 in the vector
-                    if(v_NN_d.size()==501) v_NN_d.pop_back();
-                    if(v_NN_MM.size()==501) v_NN_MM.pop_back();
+                      // Removing the largest value if there are over 500 in the vector
+                      if(v_NN_d.size()==501) v_NN_d.pop_back();
+                      if(v_NN_MM.size()==501) v_NN_MM.pop_back();
 
-                    break;
+                      break;
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Plotting and fitting the nearest neighbours
 
@@ -916,23 +920,24 @@ void Strangeness_1_RGA_Q_Weight(){
           func6->FixParameter(1,func4->GetParameter(4));
           func6->FixParameter(2,func4->GetParameter(5));
 
-          sig_1 = func2->Integral(0,100);
-          back_1 = func3->Integral(0,100);
-          sig_2 = func5->Integral(0,100);
-          back_2 = func6->Integral(0,100);
-          cout<<sig_1<<" "<<back_1<<" "<<endl;
+          sig_1 = func2->Eval(miss1.M());
+          back_1 = func3->Eval(miss1.M());
+          sig_2 = func5->Eval(miss1.M());
+          back_2 = func6->Eval(miss1.M());
+          Q_Weight_1a = sig_1 / (sig_1 + back_1);
+          Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(miss1.M())));
 
-        //   Q_Weight_1a = sig_1 / (sig_1 + back_1);
-        //   Q_Weight_1b = 1 - (back_1 / h_miss1_NN->Integral(0,100));
-        //
-        //   Q_Weight_2a = sig_2 / (sig_2 + back_2);
-        //   Q_Weight_2b = 1 - (back_1 / h_miss1_NN->Integral(0,100));
-        //   cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<endl;
-        // }
-        //
-        // // Setting Q weight to 0 for events without "good" missing masses
-        // // else Q_Weight = 0;
+          Q_Weight_2a = sig_2 / (sig_2 + back_2);
+          Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(miss1.M())));
+          cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<endl;
+        }
 
+        // Setting Q weight to 0 for events without "good" missing masses
+        else Q_Weight_1a = 0, Q_Weight_1b = 0, Q_Weight_2a = 0, Q_Weight_2b = 0;
+        h_miss1_Qweights_1a->Fill(miss1.M(),Q_Weight_1a);
+        h_miss1_Qweights_1b->Fill(miss1.M(),Q_Weight_1a);
+        h_miss1_Qweights_2a->Fill(miss1.M(),Q_Weight_1a);
+        h_miss1_Qweights_2b->Fill(miss1.M(),Q_Weight_1a);
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
