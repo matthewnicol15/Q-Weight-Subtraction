@@ -17,6 +17,8 @@
 // Macro name
 void Strangeness_1_RGA_Q_Weight(){
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   // Read file with information on vectors
   gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
 
@@ -25,38 +27,36 @@ void Strangeness_1_RGA_Q_Weight(){
   // Read TTree within root file and assign it to 't1'
   TTree *t1 = (TTree*)f->Get("RGA_Skim4_Tree_200420_01");
 
+  // Recording the calculated mass of kaons for Q weights
+  Double_t mass_kp, mass_kp_other;
+
+
+  // Creating TTree friend
+  // File to store TTree friend
+  TFile *ff = new TFile("treefriend_250521_01.root","recreate");
+  // TTree friend is copy of original TTree
+  TTree TF("TF","it's a tree!");
+
   Int_t Good=0; // COunt number of events passing cuts
 
   // Functions to fit Q weight plots
-  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.7,1.6);
-  auto* func2=new TF1("func2","gaus(0)",0.7,1.6);
-  auto* func3=new TF1("func3","pol3(0)",0.7,1.6);
+  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.36,0.7);
+  auto* func2=new TF1("func2","gaus(0)",0.36,0.7);
+  auto* func3=new TF1("func3","pol3(0)",0.36,0.7);
 
   // Functions to fit Q weight plots
-  auto* func4=new TF1("func4","gaus(0)+pol2(3)",0.7,1.6);
-  auto* func5=new TF1("func5","gaus(0)",0.7,1.6);
-  auto* func6=new TF1("func6","pol2(0)",0.7,1.6);
+  auto* func4=new TF1("func4","gaus(0)+gaus(3)+pol2(6)",0.36,0.7);
+  auto* func5=new TF1("func5","gaus(0)",0.36,0.7);
+  auto* func6=new TF1("func6","gaus(0)",0.36,0.7);
+  auto* func7=new TF1("func7","pol2(0)",0.36,0.7);
 
-  // Setting parameters before fitting for 3rd order polynomial and gaus
-  func1->SetParameter(0,25);
-  func1->SetParameter(1,1.116);
-  func1->SetParameter(2,0.05);
-  func1->SetParameter(3,-7);
-  func1->SetParameter(4,11);
-  func1->SetParameter(5,0);
 
-  // Setting parameters before fitting for 2nd order polynomial and gaus
-  func4->SetParameter(0,25);
-  func4->SetParameter(1,1.116);
-  func4->SetParameter(2,0.05);
-  func4->SetParameter(3,-7);
-  func4->SetParameter(4,11);
-  func4->SetParameter(5,0);
 
   // Integrals to calculate Q weights
   Double_t sig_1=-100, back_1=10, sig_2=-100, back_2=10;
   // Q weights
   Double_t Q_Weight_1a=-10, Q_Weight_1b=-10, Q_Weight_2a=-10, Q_Weight_2b=-10;
+
 
   // Creating components to read from TTree
   // Set any vectors to 0 before reading from the TTree
@@ -85,7 +85,7 @@ void Strangeness_1_RGA_Q_Weight(){
   vector<double> *v_chi2PID=0;   // Chi^2 of the PID
   vector<Int_t> *v_region=0; // region particle goes in
 
-  // Setting the branch addresses to read from
+  // Setting the branch addresses to read from original TTree
   t1->SetBranchAddress("p4",&v_p4);
   t1->SetBranchAddress("vertex",&v_vertex);
   t1->SetBranchAddress("path",&v_path);
@@ -102,6 +102,14 @@ void Strangeness_1_RGA_Q_Weight(){
   t1->SetBranchAddress("eventno",&readeventno);
   t1->SetBranchAddress("runno",&readrunno);
   t1->SetBranchAddress("triggerno",&readtriggerno);
+
+  // Adding the Q Weights to the TTree friend
+  TF.Branch("mass_kp",&mass_kp);
+  TF.Branch("Q_Weight_1a",&Q_Weight_1a);
+  TF.Branch("Q_Weight_1b",&Q_Weight_1b);
+  TF.Branch("Q_Weight_2a",&Q_Weight_2a);
+  TF.Branch("Q_Weight_2b",&Q_Weight_2b);
+
 
   // Path and name for the output file to save
   TFile* fileOutput1=new TFile("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_240521_01.root","recreate");
@@ -136,11 +144,10 @@ void Strangeness_1_RGA_Q_Weight(){
   auto* h_delta_beta_pim=new TH2F("h_delta_beta_pim","",200,0,11,200,-1,1);
   auto* h_photon_energy=new TH1F("h_photon_energy","",400,0,11);
   auto* h_cos_theta_kaonp=new TH1F("h_cos_theta_kaonp","",400,-2,2);
-  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.7,1.6);
-  auto* h_miss1_Qweights_1a=new TH1F("h_miss1_Qweights_1a","Q weights missing mass",10000,0.7,1.6);
-  auto* h_miss1_Qweights_1b=new TH1F("h_miss1_Qweights_1b","Q weights missing mass",10000,0.7,1.6);
-  auto* h_miss1_Qweights_2a=new TH1F("h_miss1_Qweights_2a","Q weights missing mass",10000,0.7,1.6);
-  auto* h_miss1_Qweights_2b=new TH1F("h_miss1_Qweights_2b","Q weights missing mass",10000,0.7,1.6);
+  auto* h_mass_kp_Qweights_1a=new TH2D("h_mass_kp_Qweights_1a","Q weights missing mass",400,0.3,0.7,1000,0,1);
+  auto* h_mass_kp_Qweights_1b=new TH2D("h_mass_kp_Qweights_1b","Q weights missing mass",400,0.3,0.7,1000,0,1);
+  auto* h_mass_kp_Qweights_2a=new TH2D("h_mass_kp_Qweights_2a","Q weights missing mass",400,0.3,0.7,1000,0,1);
+  auto* h_mass_kp_Qweights_2b=new TH2D("h_mass_kp_Qweights_2b","Q weights missing mass",400,0.3,0.7,1000,0,1);
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
 
@@ -162,7 +169,7 @@ void Strangeness_1_RGA_Q_Weight(){
   Double_t photon_energy, photon_energy_other; // photon energy
   Double_t distance; // distance between missing mass points for Q weights
   Double_t cos_theta_range = 2, photon_energy_range = 8; // Ranges of values for cos theta and photon energy
-  vector<Double_t> v_NN_d, v_NN_MM; // vectors containing information on the nearest neighbours
+  vector<Double_t> v_NN_d, v_NN_mKp; // vectors containing information on the nearest neighbours
 
   // TLorentzVectors for individual particles
   TLorentzVector el, el_other;
@@ -277,7 +284,7 @@ void Strangeness_1_RGA_Q_Weight(){
 
   // K^+
   vector<Double_t> v_beta_tof_kp;  // Beta measured
-  Double_t beta_tof_kp;
+  Double_t beta_tof_kp, beta_tof_kp_other;
   vector<Double_t> v_P_kp;  // Momentum measured
   Double_t P_kp;
   vector<Double_t>v_path_kp; // Path measured
@@ -293,7 +300,6 @@ void Strangeness_1_RGA_Q_Weight(){
   vector<Double_t> v_region_kp; // region hit
   Double_t region_kp;
   vector<Double_t> v_mass_kp; // region hit
-  Double_t mass_kp;
 
   // K^-
   vector<Double_t> v_beta_tof_km;  // Beta measured
@@ -336,27 +342,53 @@ void Strangeness_1_RGA_Q_Weight(){
   // Reads the total number of entries in the TTree
   // Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 2366;
+  Long64_t nentries = 50000;
 
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
-
   // This loops over all the entries in the TTree
   for(Long64_t i=0; i<nentries;i++){
+    // Creating the histogram for kaon mass of nearest neighbours
+    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.35,0.7);
+
 
     // Get this entry from the TTree
     t1->GetEntry(i);
 
     // Clear nearest neighbour vectors
     v_NN_d.clear();
-    v_NN_MM.clear();
+    v_NN_mKp.clear();
 
+    // Setting parameters before fitting for 3rd order polynomial and gaus
+    func1->SetParameter(0,30);
+    func1->FixParameter(1,0.49368);
+    func1->SetParameter(2,0.05);
+    // func1->SetParameter(3,-7);
+    // func1->SetParameter(4,11);
+    // func1->SetParameter(5,0);
+
+    // Setting parameters before fitting for 2nd order polynomial and gaus
+    func4->SetParameter(0,25);
+    func4->FixParameter(1,0.49368);
+    func4->SetParameter(2,0.05);
+    func4->SetParameter(3,5);
+    func4->FixParameter(4,0.49368);
+    func4->SetParameter(5,0.02);
+    // func4->SetParameter(6,-7);
+    // func4->SetParameter(7,11);
+    // func4->SetParameter(8,0);
+
+    // Setting Q weights each event
+    Q_Weight_1a = -10;
+    Q_Weight_1b = -10;
+    Q_Weight_2a = -10;
+    Q_Weight_2b = -10;
 
     // This prints out the percentage of events completed so far
-    // if (i % Percentage == 0){
-    //   fprintf (stderr, "%lld\r", i/Percentage);
-    //   fflush (stderr);
-    // }
+    if (i % Percentage == 0){
+      fprintf (stderr, "%lld\r", i/Percentage);
+      fflush (stderr);
+    }
 
     // All the vectors must be cleared at the start of each event entry
     // e^-
@@ -692,8 +724,6 @@ void Strangeness_1_RGA_Q_Weight(){
     // Here you can apply conditions on the events you want to analyse
     if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
 
-
-
       // Select which region you want the particles to go in
       // if(v_region_kp.at(0) == 1 && v_region_pr.at(0) == 1 && v_region_pim.at(0) == 1){
 
@@ -751,194 +781,216 @@ void Strangeness_1_RGA_Q_Weight(){
       hmiss_mass_all->Fill(missall.M2());
       hmiss_momentum_all->Fill(missall.Rho());
 
-      if(lambda.M() < 1.14){
-        hmiss_1_2->Fill(miss1.M());
-        Good++;
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Determining nearest neighbours for Q weight calculations
 
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // Determining nearest neighbours for Q weight calculations
+      // Only looking at nearest neighbours for events with good missing mass values
+      // if(miss1.M() > 0.7 && miss1.M() < 1.6){
+        cout<<"event no: "<<i<<endl;
 
-        // Only looking at nearest neighbours for events with good missing mass values
-        if(miss1.M() > 0.7 && miss1.M() < 1.6){
+        Int_t size=0;
+        // Loop over all other events
+        for(Long64_t m = 0; m < nentries; m++){
+          if(m==i)continue;
 
 
-          Int_t size=0;
-          // Loop over all other events
-          for(Long64_t m = 0; m < 1000000; m++){
-            if(m==i)continue;
+          // Gets information on event m
+          t1->GetEntry(m);
 
-            // Gets information on event m
-            t1->GetEntry(m);
+          v_el_other.clear();
+          v_kp_other.clear();
+          v_pr_other.clear();
+          v_pim_other.clear();
 
-            v_el_other.clear();
-            v_kp_other.clear();
-            v_pr_other.clear();
-            v_pim_other.clear();
+          Int_t Nparticles_other = v_p4->size();
 
-            Int_t Nparticles_other = v_p4->size();
+          // This loops over all the particles in the current entry
+          for(Int_t p=0; p<Nparticles_other; p++){
 
-            // This loops over all the particles in the current entry
-            for(Int_t p=0; p<Nparticles_other; p++){
-              if(v_PID->at(p) == 11){
-                el_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(11)->Mass());
-                v_el_other.push_back(el_other);
-              }
-              else if(v_PID->at(p) == 321){
-                kp_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(321)->Mass());
-                v_kp_other.push_back(kp_other);
-              }
-              else if(v_PID->at(p) == 2212){
-                pr_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(2212)->Mass());
-                v_pr_other.push_back(pr_other);
-              }
-              else if(v_PID->at(p) == -211){
-                pim_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(-211)->Mass());
-                v_pim_other.push_back(pim_other);
-              }
+            if(v_PID->at(p) == 11){
+              el_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(11)->Mass());
+              v_el_other.push_back(el_other);
             }
 
-            // Checking for events with 1 K+, 1 e-, 1 proton and 1 pi-
-            if(v_el_other.size() == 1 && v_kp_other.size() == 1 && v_pr_other.size() == 1 && v_pim_other.size() == 1){
+            else if(v_PID->at(p) == 321){
+              kp_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(321)->Mass());
+              v_kp_other.push_back(kp_other);
+              beta_tof_kp_other = v_beta->at(p);
+            }
 
-              // Invariant mass of proton pi^-
-              Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
+            else if(v_PID->at(p) == 2212){
+              pr_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(2212)->Mass());
+              v_pr_other.push_back(pr_other);
+            }
 
-              // Checking if event has invariant mass close to that of ground state lambda
-              if(Lambda_other.M() < 1.14){
-                // cout<<i<<" "<<v_NN_d.size()<<endl;
+            else if(v_PID->at(p) == -211){
+              pim_other.SetXYZM(v_p4->at(p).Px(), v_p4->at(p).Py(), v_p4->at(p).Pz(), db->GetParticle(-211)->Mass());
+              v_pim_other.push_back(pim_other);
+            }
+          }
 
-                // Missing mass of e' K^{+}, looking for lambda ground state
-                miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
-                // Determining the four vector for the photon
-                photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
-                // Determining the COM frame of reference
-                COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
+          // Checking for events with 1 K+, 1 e-, 1 proton and 1 pi-
+          if(v_el_other.size() == 1 && v_kp_other.size() == 1 && v_pr_other.size() == 1 && v_pim_other.size() == 1){
 
-                if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
+            // Invariant mass of proton pi^-
+            Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
 
-                // Making the 3 vector for COM frame of reference
-                COM_3_other = COM_other.BoostVector();
-                // Getting the kaon information before boosting
-                kaon_boost_com_other = v_kp_other.at(0);
-                // Boosting the other kaon into COM frame of reference
-                kaon_boost_com_other.Boost(COM_3_other);
+            // Checking if event has invariant mass close to that of ground state lambda
+            // if(Lambda_other.M() < 1.14){
 
-                // Get cos theta and gamma energy here
-                Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
-                photon_energy_other = photon_other.E();
-                // Calculate difference between cos thetas
-                distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
-                pow((photon_energy - photon_energy_other) / photon_energy_range,2));
+              // Missing mass of e' K^{+}, looking for lambda ground state
+              miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
+              // Determining the four vector for the photon
+              photon_other = (TLorentzVector)*readbeam - v_el_other.at(0);
+              // Determining the COM frame of reference
+              COM_other = v_el_other.at(0) + v_kp_other.at(0) + v_pim_other.at(0) + v_pr_other.at(0);
 
-                // If there are no entries yet then just push back the values
-                if(v_NN_d.size()<1){
-                  v_NN_d.push_back(distance);
-                  v_NN_MM.push_back(miss1_other.M());
+              mass_kp_other = sqrt((pow(v_kp_other.at(0).Rho(),2) / (pow(beta_tof_kp_other,2))) - pow(v_kp_other.at(0).Rho(),2));
 
-                }
-                // If there are entries
-                else{
+              // cout<<v_kp_other.size()<<" "<<v_beta->size()<<endl;
+              // if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
 
-                  // Loop over current stored nearest neighbours, starting at largest distance
-                  for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
+              // Making the 3 vector for COM frame of reference
+              COM_3_other = COM_other.BoostVector();
+              // Getting the kaon information before boosting
+              kaon_boost_com_other = v_kp_other.at(0);
+              // Boosting the other kaon into COM frame of reference
+              kaon_boost_com_other.Boost(COM_3_other);
 
-                    // Skip events with distance greater than the max in vector if there are already 500
-                    if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
+              // Get cos theta and gamma energy here
+              Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
+              photon_energy_other = photon_other.E();
+              // Calculate difference between cos thetas
+              distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
+              pow((photon_energy - photon_energy_other) / photon_energy_range,2));
 
-
-
-                    // Creating iterator for beginning of vector for smallest distance
-                    vector<double>::iterator itPos2 = v_NN_d.begin();
-                    vector<double>::iterator itPos2MM = v_NN_MM.begin();
-
-                    if(distance < v_NN_d.at(0)){
-
-                      // Inserting values into vector of nearest neighbours
-                      v_NN_d.insert(itPos2, distance);
-                      v_NN_MM.insert(itPos2MM, miss1_other.M());
-
-                      // Removing the largest value if there are over 500 in the vector
-                      if(v_NN_d.size()==501) v_NN_d.pop_back();
-                      if(v_NN_MM.size()==501) v_NN_MM.pop_back();
-
-                      break;
-                    }
+              // cout<<v_kp_other.at(0).Rho()<<" "<<beta_tof_kp_other<<" "<<mass_kp_other<<" "<<miss1_other.M()<<endl;
 
 
+              // If there are no entries yet then just push back the values
+              if(v_NN_d.size()<1){
+                v_NN_d.push_back(distance);
+                v_NN_mKp.push_back(mass_kp_other);
+              }
+              // If there are entries
+              else{
 
-                    // Checking if distance is larger than the current value in vector
-                    if(distance > v_NN_d.at(k)){
+                // Loop over current stored nearest neighbours, starting at largest distance
+                for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
 
-                      // Creating iterator for the position to insert distance into vector
-                      vector<double>::iterator itPos = v_NN_d.begin() + k + 1;
-                      vector<double>::iterator itPosMM = v_NN_MM.begin() + k + 1;
+                  // Skip events with distance greater than the max in vector if there are already 500
+                  if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
 
-                      // Pushing back values to the next position
-                      v_NN_d.insert(itPos, distance);
-                      v_NN_MM.insert(itPosMM, miss1_other.M());
 
-                      // Removing the largest value if there are over 500 in the vector
-                      if(v_NN_d.size()==501) v_NN_d.pop_back();
-                      if(v_NN_MM.size()==501) v_NN_MM.pop_back();
 
-                      break;
-                    }
+                  // Creating iterator for beginning of vector for smallest distance
+                  vector<double>::iterator itPos2 = v_NN_d.begin();
+                  vector<double>::iterator itPos2MM = v_NN_mKp.begin();
+
+                  if(distance < v_NN_d.at(0)){
+
+                    // Inserting values into vector of nearest neighbours
+                    v_NN_d.insert(itPos2, distance);
+                    v_NN_mKp.insert(itPos2MM, mass_kp_other);
+
+                    // Removing the largest value if there are over 500 in the vector
+                    if(v_NN_d.size()==501) v_NN_d.pop_back();
+                    if(v_NN_mKp.size()==501) v_NN_mKp.pop_back();
+
+                    break;
+                  }
+
+
+
+                  // Checking if distance is larger than the current value in vector
+                  if(distance > v_NN_d.at(k)){
+
+                    // Creating iterator for the position to insert distance into vector
+                    vector<double>::iterator itPos = v_NN_d.begin() + k + 1;
+                    vector<double>::iterator itPosMM = v_NN_mKp.begin() + k + 1;
+
+                    // Pushing back values to the next position
+                    v_NN_d.insert(itPos, distance);
+                    v_NN_mKp.insert(itPosMM, mass_kp_other);
+
+                    // Removing the largest value if there are over 500 in the vector
+                    if(v_NN_d.size()==501) v_NN_d.pop_back();
+                    if(v_NN_mKp.size()==501) v_NN_mKp.pop_back();
+
+                    break;
                   }
                 }
               }
             }
-          }
+          // }
+        // }
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Plotting and fitting the nearest neighbours
+
+      // If there are values for the nearest neighbours
+      if(v_NN_mKp.size() > 0){
+        Int_t k = v_NN_mKp.size();
+        // Loop over all the nearest neighbour values
+        for(Int_t q = 0; q < k; q++){
+          // Fill the histogram with the missing mass values for the nearest neighbours
+          h_miss1_NN->Fill(v_NN_mKp.at(q));
+          // cout<<v_NN_mKp.at(q)<<endl;
         }
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // Plotting and fitting the nearest neighbours
+        h_miss1_NN->Sumw2();
+        h_miss1_NN->Fit("func1","RLE");
 
-        // If there are values for the nearest neighbours
-        if(v_NN_MM.size() > 0){
-          Int_t k = v_NN_MM.size();
-          // Loop over all the nearest neighbour values
-          for(Int_t q = 0; q < k; q++){
-            // Fill the histogram with the missing mass values for the nearest neighbours
-            h_miss1_NN->Fill(v_NN_MM.at(q));
+        func2->FixParameter(0,func1->GetParameter(0));
+        func2->FixParameter(1,func1->GetParameter(1));
+        func2->FixParameter(2,func1->GetParameter(2));
+        func3->FixParameter(0,func1->GetParameter(3));
+        func3->FixParameter(1,func1->GetParameter(4));
+        func3->FixParameter(2,func1->GetParameter(5));
+        func3->FixParameter(3,func1->GetParameter(6));
 
-          }
-          h_miss1_NN->Sumw2();
-          h_miss1_NN->Fit("func1","RLE");
+        h_miss1_NN->Fit("func4","RLE");
+        func5->FixParameter(0,func4->GetParameter(0));
+        func5->FixParameter(1,func4->GetParameter(1));
+        func5->FixParameter(2,func4->GetParameter(2));
+        func6->FixParameter(0,func4->GetParameter(3));
+        func6->FixParameter(1,func4->GetParameter(4));
+        func6->FixParameter(2,func4->GetParameter(5));
+        func7->FixParameter(0,func4->GetParameter(6));
+        func7->FixParameter(1,func4->GetParameter(7));
+        func7->FixParameter(2,func4->GetParameter(8));
 
-          func2->FixParameter(0,func1->GetParameter(0));
-          func2->FixParameter(1,func1->GetParameter(1));
-          func2->FixParameter(2,func1->GetParameter(2));
-          func3->FixParameter(0,func1->GetParameter(3));
-          func3->FixParameter(1,func1->GetParameter(4));
-          func3->FixParameter(2,func1->GetParameter(5));
-          func3->FixParameter(3,func1->GetParameter(6));
+        // Calculating the signal and background for 1st fit
+        sig_1 = func2->Eval(mass_kp_other);
+        back_1 = func3->Eval(mass_kp_other);
 
-          h_miss1_NN->Fit("func4","RLE");
-          func5->FixParameter(0,func4->GetParameter(0));
-          func5->FixParameter(1,func4->GetParameter(1));
-          func5->FixParameter(2,func4->GetParameter(2));
-          func6->FixParameter(0,func4->GetParameter(3));
-          func6->FixParameter(1,func4->GetParameter(4));
-          func6->FixParameter(2,func4->GetParameter(5));
+        // Calculating the signal and background for 2nd fit
+        sig_2 = func5->Eval(mass_kp_other) + func6->Eval(mass_kp_other);
+        back_2 = func7->Eval(mass_kp_other);
 
-          sig_1 = func2->Eval(miss1.M());
-          back_1 = func3->Eval(miss1.M());
-          sig_2 = func5->Eval(miss1.M());
-          back_2 = func6->Eval(miss1.M());
-          Q_Weight_1a = sig_1 / (sig_1 + back_1);
-          Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(miss1.M())));
+        // Calculating Q weight for 1st fit using 2 methods
+        Q_Weight_1a = sig_1 / (sig_1 + back_1);
+        Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp_other)));
 
-          Q_Weight_2a = sig_2 / (sig_2 + back_2);
-          Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(miss1.M())));
-          cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<endl;
-        }
+        // Calculating Q weight for 2nd fit using 2 methods
+        Q_Weight_2a = sig_2 / (sig_2 + back_2);
+        Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp_other)));
+        // cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<" "<<endl;
+      }
 
-        // Setting Q weight to 0 for events without "good" missing masses
-        else Q_Weight_1a = 0, Q_Weight_1b = 0, Q_Weight_2a = 0, Q_Weight_2b = 0;
-        h_miss1_Qweights_1a->Fill(miss1.M(),Q_Weight_1a);
-        h_miss1_Qweights_1b->Fill(miss1.M(),Q_Weight_1a);
-        h_miss1_Qweights_2a->Fill(miss1.M(),Q_Weight_1a);
-        h_miss1_Qweights_2b->Fill(miss1.M(),Q_Weight_1a);
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Setting Q weight to 0 for events without "good" missing masses
+      else Q_Weight_1a = 0, Q_Weight_1b = 0, Q_Weight_2a = 0, Q_Weight_2b = 0;
+      h_mass_kp_Qweights_1a->Fill(mass_kp,Q_Weight_1a);
+      h_mass_kp_Qweights_1b->Fill(mass_kp,Q_Weight_1b);
+      h_mass_kp_Qweights_2a->Fill(mass_kp,Q_Weight_2a);
+      h_mass_kp_Qweights_2b->Fill(mass_kp,Q_Weight_2b);
+
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+      if(lambda.M() < 1.14){
+        hmiss_1_2->Fill(miss1.M());
+        Good++;
+
 
 
         if(miss3.M()> 0.9 && miss3.M() < 1.1) hmiss_1_phi->Fill(miss1.M());
@@ -959,27 +1011,38 @@ void Strangeness_1_RGA_Q_Weight(){
 
         }
       }
-
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
 
-    // for(int l=0;l<100;l++) cout<<v_NN_d.at(l)<<endl;
+    h_miss1_NN->Delete();
+    TF.Fill();
   } // Event loop
-  auto *c1=new TCanvas("c1","",800,800);
-  h_miss1_NN->Draw();
-  func2->SetLineColor(kBlue);
-  func3->SetLineColor(kGreen);
-  func1->Draw("same");
-  func2->Draw("same");
-  func3->Draw("same");
+  // auto *c1=new TCanvas("c1","",800,800);
+  // h_miss1_NN->Draw();
+  // func2->SetLineColor(kBlue);
+  // func3->SetLineColor(kGreen);
+  // func1->Draw("same");
+  // func2->Draw("same");
+  // func3->Draw("same");
+  //
+  // auto *c2=new TCanvas("c2","",800,800);
+  // h_miss1_NN->Draw();
+  // func5->SetLineColor(kBlue);
+  // func6->SetLineColor(kBlue);
+  // func7->SetLineColor(kGreen);
+  // // func4->Draw("same");
+  // func5->Draw("same");
+  // func6->Draw("same");
+  // func7->Draw("same");
 
-  auto *c2=new TCanvas("c2","",800,800);
-  h_miss1_NN->Draw();
-  func5->SetLineColor(kBlue);
-  func6->SetLineColor(kGreen);
-  func4->Draw("same");
-  func5->Draw("same");
-  func6->Draw("same");
+ // Save root file
+  fileOutput1->Write();
+  // Save root file with TTree friend
+  ff->Write();
+  // Close file with TTree friend
+  ff->Close();
 
-  fileOutput1->Write(); // Save root file
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = finish - start;
+  std::cout << "Elapsed time: " << elapsed.count();
 }
