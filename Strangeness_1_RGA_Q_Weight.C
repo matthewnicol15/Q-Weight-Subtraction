@@ -5,6 +5,7 @@
 // Option 3: cos < 0 and photon energy < 6
 // Option 4: cos < 0 and photon energy >= 6 GeV
 
+Int_t Energy_Bin = 0; // Set to
 
 #include <cstdlib>
 #include <iostream>
@@ -24,11 +25,23 @@
 
 // Macro name
 void Strangeness_1_RGA_Q_Weight(){
+cout<<Energy_Bin<<endl;
 
   auto start = std::chrono::high_resolution_clock::now();
 
   // Read file with information on vectors
   gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
+
+  // Energy Bins
+
+
+
+  // std::ostringstream File_name; // String for root file names
+  // std::ostringstream TTree_name; // String for TTree names
+  //
+  // File_name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<j<<".root";
+  // TTree_name<<"Energy_"<<j;
+
 
   // Read input root file and assign it to 'f'
   TFile *f = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
@@ -357,14 +370,15 @@ void Strangeness_1_RGA_Q_Weight(){
   // Reads the total number of entries in the TTree
   // Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 10000;
+  Long64_t nentries = 1000000;
   cout<<t1->GetEntries()<<endl;
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
   // This loops over all the entries in the TTree
-  for(Long64_t i=0; i<nentries; i++){
+  for(Long64_t i=2; i<3; i++){
     // Creating the histogram for kaon mass of nearest neighbours
     auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.35,0.7);
+    auto* h_distance=new TH1F("h_distance","NN distance",100,0,1);
 
 
     // Get this entry from the TTree
@@ -884,7 +898,7 @@ void Strangeness_1_RGA_Q_Weight(){
           kaon_boost_com_other.Boost(COM_3_other);
 
           // Get cos theta and gamma energy here
-          Cos_Theta_Kp_COM_other = cos(kaon_boost_com.Theta());
+          Cos_Theta_Kp_COM_other = cos(kaon_boost_com_other.Theta());
           photon_energy_other = photon_other.E();
 
           // Looking at different bins of cos and photon energy
@@ -913,9 +927,8 @@ void Strangeness_1_RGA_Q_Weight(){
           }
 
           // Calculate difference between cos thetas
-          distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2);
-
-          // cout<<v_kp_other.at(0).Rho()<<" "<<beta_tof_kp_other<<" "<<mass_kp_other<<" "<<miss1_other.M()<<endl;
+          distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2)) /* +
+          pow((photon_energy - photon_energy_other) / photon_energy_range,2)) */;
 
 
           // If there are no entries yet then just push back the values
@@ -986,6 +999,7 @@ void Strangeness_1_RGA_Q_Weight(){
         for(Int_t q = 0; q < k; q++){
           // Fill the histogram with the missing mass values for the nearest neighbours
           h_miss1_NN->Fill(v_NN_mKp.at(q));
+          h_distance->Fill(v_NN_d.at(q));
           // cout<<v_NN_mKp.at(q)<<endl;
         }
 
@@ -1100,36 +1114,39 @@ void Strangeness_1_RGA_Q_Weight(){
       }
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
-    // auto *c1=new TCanvas("c1","",800,800);
-    // h_miss1_NN->Draw();
-    // func1->SetLineColor(kYellow);
-    // func2->SetLineColor(kPink);
-    // func3->SetLineColor(kOrange);
-    // func1->Draw("same");
-    // func2->Draw("same");
-    // func3->Draw("same");
-    //
-    // auto *c2=new TCanvas("c2","",800,800);
-    // h_miss1_NN->Draw();
-    // func5->SetLineColor(kBlue);
-    // func6->SetLineColor(kBlack);
-    // func7->SetLineColor(kGreen);
-    // // func4->Draw("same");
-    // func5->Draw("same");
-    // func6->Draw("same");
-    // func7->Draw("same");
+    auto *c1=new TCanvas("c1","",800,800);
+    h_miss1_NN->Draw();
+    func1->SetLineColor(kYellow);
+    func2->SetLineColor(kPink);
+    func3->SetLineColor(kOrange);
+    func1->Draw("same");
+    func2->Draw("same");
+    func3->Draw("same");
 
-    h_miss1_NN->Delete();
-    TF.Fill();
+    auto *c2=new TCanvas("c2","",800,800);
+    h_miss1_NN->Draw();
+    func5->SetLineColor(kBlue);
+    func6->SetLineColor(kBlack);
+    func7->SetLineColor(kGreen);
+    // func4->Draw("same");
+    func5->Draw("same");
+    func6->Draw("same");
+    func7->Draw("same");
+
+    auto *c3=new TCanvas("c3","",800,800);
+    h_distance->Draw();
+
+    // h_miss1_NN->Delete();
+    // TF.Fill();
   } // Event loop
 
 
   // Save root file
-  fileOutput1->Write();
+  // fileOutput1->Write();
   // Save root file with TTree friend
-  ff->Write();
-  // Close file with TTree friend
-  ff->Close();
+  // ff->Write();
+  // // Close file with TTree friend
+  // ff->Close();
 
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
