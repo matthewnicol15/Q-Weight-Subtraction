@@ -456,7 +456,10 @@ void Tree_Splitter(){
       // Getting the photon energy
       photon_energy = photon.E();
       for(int k=0; k<15; k++){
-        if(photon_energy > Energy_bins[k] && photon_energy < Energy_bins[k+1]) mybin = k;
+        if(photon_energy > Energy_bins[k] && photon_energy < Energy_bins[k+1]){
+           mybin = k;
+           break;
+         }
 
       }
       Energy_[mybin]->Fill();
