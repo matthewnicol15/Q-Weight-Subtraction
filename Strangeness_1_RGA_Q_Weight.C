@@ -1,11 +1,26 @@
-// Analysis split into 4 options, search for option 1, option 2, option 3 or option 4 to set
-// Change output file to _01.root, _02.root, _03.root or _04.root
-// Option 1: cos >= 0 and photon energy < 6 GeV
-// Option 2: cos >= 0 and photon energy >= 6 GeV
-// Option 3: cos < 0 and photon energy < 6
-// Option 4: cos < 0 and photon energy >= 6 GeV
+// Analysis split into bins of photon energy
+// Select energy range below
 
-Int_t Energy_Bin = 0; // Set to
+Int_t Energy_Bin = 1; // Set to the energy bin you want to look at
+// Photon Energy Bins [GeV]
+// [0]  0-3,
+// [1]  3-4
+// [2]  4-4.5
+// [3]  4.5-5
+// [4]  5-5.5
+// [5]  5.5-6
+// [6]  6-6.5
+// [7]  6.5-7
+// [8]  7-7.5
+// [9]  7.5-8
+// [10]  8-8.5
+// [11]  8.5-9
+// [12]  9-9.5
+// [13]  9.5-10.5
+
+// Choose the number of nearest neighbours to use for the Q weights
+Int_t  NN = 500; // Number of nearest neighbours
+Int_t Nearest_Neighbour_Size; // Current size of vector of nearest neighbours
 
 #include <cstdlib>
 #include <iostream>
@@ -22,6 +37,11 @@ Int_t Energy_Bin = 0; // Set to
 #include <TBenchmark.h>
 #include <vector>
 #include <TCanvas.h>
+#include <chrono>
+#include <sstream>
+#include <string>
+
+
 
 // Macro name
 void Strangeness_1_RGA_Q_Weight(){
@@ -32,22 +52,19 @@ cout<<Energy_Bin<<endl;
   // Read file with information on vectors
   gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
 
-  // Energy Bins
+  std::ostringstream Input_File_Name, Output_File_Name; // String for root file names
+  std::ostringstream Input_TTree_Name, Output_TTree_Name; // String for TTree names
 
+  Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
+  Input_TTree_Name<<"Energy_"<<Energy_Bin;
 
-
-  // std::ostringstream File_name; // String for root file names
-  // std::ostringstream TTree_name; // String for TTree names
-  //
-  // File_name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<j<<".root";
-  // TTree_name<<"Energy_"<<j;
-
+  Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_test_160621_"<<Energy_Bin<<".root";
+  Output_TTree_Name<<"Energy_"<<Energy_Bin;
 
   // Read input root file and assign it to 'f'
-  TFile *f = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
-  // TFile *f = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
+  TFile *fin = new TFile(Input_File_Name.str().c_str());
   // Read TTree within root file and assign it to 't1'
-  TTree *t1 = (TTree*)f->Get("RGA_Skim4_Tree_260521_01");
+  TTree *t1 = (TTree*)fin->Get(Input_TTree_Name.str().c_str());
 
   // Recording the calculated mass of kaons for Q weights
   Double_t mass_kp, mass_kp_other;
@@ -55,17 +72,16 @@ cout<<Energy_Bin<<endl;
 
   // Creating TTree friend
   // File to store TTree friend
-  TFile *ff = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_test_010621_04.root","recreate");
+  TFile *fout = new TFile(Output_File_Name.str().c_str(),"recreate");
   // TFile *ff = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_500_010621_04y.root","recreate");
   // TTree friend is copy of original TTree
-  TTree TF("TF","it's a tree!");
+  TTree t2("t2","it's a tree!");
 
-  Int_t Good=0; // COunt number of events passing cuts
 
   // Functions to fit Q weight plots
-  auto* func1=new TF1("func1","gaus(0)+pol2(3)",0.36,0.7);
+  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.36,0.7);
   auto* func2=new TF1("func2","gaus(0)",0.36,0.7);
-  auto* func3=new TF1("func3","pol2(0)",0.36,0.7);
+  auto* func3=new TF1("func3","pol3(0)",0.36,0.7);
 
   // Functions to fit Q weight plots
   auto* func4=new TF1("func4","gaus(0)+gaus(3)+pol2(6)",0.36,0.7);
@@ -127,20 +143,11 @@ cout<<Energy_Bin<<endl;
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Adding the Q Weights to the TTree friend
-  TF.Branch("mass_kp",&mass_kp);
-  TF.Branch("Q_Weight_1a",&Q_Weight_1a);
-  TF.Branch("Q_Weight_1b",&Q_Weight_1b);
-  TF.Branch("Q_Weight_2a",&Q_Weight_2a);
-  TF.Branch("Q_Weight_2b",&Q_Weight_2b);
-
-
-  // Path and name for the output file to save
-  // Running local
-  // TFile* fileOutput1=new TFile("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_260521_04y.root","recreate");
-  // Running at JLab
-  // TFile* fileOutput1=new TFile("/volatile/clas12/matthewn/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_260521_04y.root","recreate");
-  // Running at York
-  // TFile* fileOutput1=new TFile("/shared/storage/physhad/JLab/mn688/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_010621_01.root","recreate");
+  t2.Branch("mass_kp",&mass_kp);
+  t2.Branch("Q_Weight_1a",&Q_Weight_1a);
+  t2.Branch("Q_Weight_1b",&Q_Weight_1b);
+  t2.Branch("Q_Weight_2a",&Q_Weight_2a);
+  t2.Branch("Q_Weight_2b",&Q_Weight_2b);
 
 
   // Getting particle database to use for masses
@@ -150,10 +157,8 @@ cout<<Energy_Bin<<endl;
   auto* hmiss_mass_all=new TH1F("miss_all","MM^2(e' K^{+} p #pi^{-});MM^2(e' K^{+} p #pi^{-}) [GeV];Counts",800,-1,3);
   auto* hmiss_momentum_all=new TH1F("hmiss_momentum_all","P(B + T - e' - K^{+} - p - #pi^{-});P(B + T - e' - K^{+} - p - #pi^{-}) [GeV];Counts",800,-1,3);
   auto* hinv_lambda=new TH1F("hinv_lambda","Invariant mass of p #pi^{-};M(p #pi^{-}) [GeV];Counts",500,1,2);
-  auto* hinv_lambda_unid=new TH1F("hinv_lambda_unid","Invariant mass of p PID=0 assuming #pi^{-} mass;M(p #pi^{-}) [GeV];Counts",500,1,2);
   auto* hinv_missing_lambda=new TH2D("hinv_missing_lambda","Missing #Lambda against invariant #Lambda;M(p #pi^{-}) [GeV];MM(e' K^{+}) [GeV]",200,0.5,2.0,200,0.5,2.06);
   auto* hangular_distribution=new TH2D("hangular_distribution","Theta vs Phi for PID 0 assuming it's #pi^{-};#phi [deg];#theta [deg]",200,-200,200,200,-200,200);
-  auto* hangular_distribution_momentum_unidentified=new TH2D("hangular_distribution_momentum_unidentified","Theta vs P for PID 0 assuming it's #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hangular_distribution_momentum_reconstructed=new TH2D("hangular_distribution_momentum_reconstructed","Theta vs P for reconstructed #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hangular_distribution_momentum_detected=new TH2D("hangular_distribution_momentum_detected","Theta vs P for #pi^{-};P [GeV];#theta [deg]",200,0,11,200,0,200);
   auto* hmiss_1=new TH1F("hmiss_1","MM(e' K^{+});MM(e' K^{+}) [GeV];Counts",800,-1,3);
@@ -183,12 +188,9 @@ cout<<Energy_Bin<<endl;
   // all particles of a given type (important when you have more than 1
   // of any particle in the same event)
   vector<TLorentzVector> v_el, v_el_other;  // e^-
-  vector<TLorentzVector> v_pip; // pi^+
   vector<TLorentzVector> v_pim, v_pim_other; // pi^-
   vector<TLorentzVector> v_pr, v_pr_other; // protons
   vector<TLorentzVector> v_kp, v_kp_other; // K^+
-  vector<TLorentzVector> v_km; // K^-
-  vector<TLorentzVector> v_unidentified_neg; // Particles with a PID of 0
   vector<TLorentzVector> v_othertracks; // Any other particles are assigned to this
 
   // Q weight values
@@ -201,27 +203,19 @@ cout<<Energy_Bin<<endl;
 
   // TLorentzVectors for individual particles
   TLorentzVector el, el_other;
-  TLorentzVector pip;
   TLorentzVector pim, pim_other;
   TLorentzVector pr, pr_other;
   TLorentzVector kp, kp_other;
-  TLorentzVector km;
-  TLorentzVector othertracks;
-  TLorentzVector unidentified_neg;
 
   // Vertex information for different particle types
   vector<TLorentzVector> v_vertex_el; // e^-
-  vector<TLorentzVector> v_vertex_pip; // pi^+
   vector<TLorentzVector> v_vertex_pim; // pi^-
   vector<TLorentzVector> v_vertex_pr; // protons
   vector<TLorentzVector> v_vertex_kp; // K^+
-  vector<TLorentzVector> v_vertex_km; // K^-
   TLorentzVector vertex_el;
-  TLorentzVector vertex_pip;
   TLorentzVector vertex_pim;
   TLorentzVector vertex_pr;
   TLorentzVector vertex_kp;
-  TLorentzVector vertex_km;
 
   // These are used to define the missing masses later
   TLorentzVector missall;
@@ -231,7 +225,6 @@ cout<<Energy_Bin<<endl;
   TLorentzVector miss3;
   TLorentzVector lambda, Lambda_other;
   TLorentzVector photon, photon_other;
-  TLorentzVector lambda_unid;
   TLorentzVector COM, COM_other;
   TVector3 COM_3, COM_3_other;
 
@@ -255,24 +248,6 @@ cout<<Energy_Bin<<endl;
   Double_t vertex_time_el;
   vector<Double_t> v_region_el; // region hit
   Double_t region_el;
-
-  // pi^+
-  vector<Double_t> v_beta_tof_pip;  // Beta measured
-  Double_t beta_tof_pip;
-  vector<Double_t> v_P_pip;  // Momentum measured
-  Double_t P_pip;
-  vector<Double_t>v_path_pip; // Path measured
-  Double_t path_pip;
-  vector<Double_t>v_TOF_pip;  // TOF measured
-  Double_t TOF_pip;
-  vector<Double_t> v_beta_calc_pip;  // Beta calculated
-  Double_t beta_calc_pip;
-  vector<Double_t> v_delta_beta_pip;  // Beta calculated - beta measured
-  Double_t delta_beta_pip;
-  vector<Double_t> v_vertex_time_pip;  // Vertex time calculated
-  Double_t vertex_time_pip;
-  vector<Double_t> v_region_pip; // region hit
-  Double_t region_pip;
 
   // pi^-
   vector<Double_t> v_beta_tof_pim;  // Beta measured
@@ -329,41 +304,6 @@ cout<<Energy_Bin<<endl;
   Double_t region_kp;
   vector<Double_t> v_mass_kp; // region hit
 
-  // K^-
-  vector<Double_t> v_beta_tof_km;  // Beta measured
-  Double_t beta_tof_km;
-  vector<Double_t> v_P_km;  // Momentum measured
-  Double_t P_km;
-  vector<Double_t>v_path_km; // Path measured
-  Double_t path_km;
-  vector<Double_t>v_TOF_km;  // TOF measured
-  Double_t TOF_km;
-  vector<Double_t> v_beta_calc_km;  // Beta calculated
-  Double_t beta_calc_km;
-  vector<Double_t> v_delta_beta_km;  // Beta calculated - beta measured
-  Double_t delta_beta_km;
-  vector<Double_t> v_vertex_time_km;  // Vertex time calculated
-  Double_t vertex_time_km;
-  vector<Double_t> v_region_km; // region hit
-  Double_t region_km;
-
-  // Particles with PID = 0
-  vector<Double_t> v_beta_tof_unidentified_neg;  // Beta measured
-  Double_t beta_tof_unidentified_neg;
-  vector<Double_t> v_P_unidentified_neg;  // Momentum measured
-  Double_t P_unidentified_neg;
-  vector<Double_t>v_path_unidentified_neg; // Path measured
-  Double_t path_unidentified_neg;
-  vector<Double_t>v_TOF_unidentified_neg;  // TOF measured
-  Double_t TOF_unidentified_neg;
-  vector<Double_t> v_beta_calc_unidentified_neg;  // Beta calculated
-  Double_t beta_calc_unidentified_neg;
-  vector<Double_t> v_delta_beta_unidentified_neg;  // Beta calculated - beta measured
-  Double_t delta_beta_unidentified_neg;
-  vector<Double_t> v_vertex_time_unidentified_neg;  // Vertex time calculated
-  Double_t vertex_time_unidentified_neg;
-  vector<Double_t> v_region_unidentified_neg; // region hit
-  Double_t region_unidentified_neg;
 
   Double_t c=30;  // Speed of light used for calculating vertex time
 
@@ -375,10 +315,10 @@ cout<<Energy_Bin<<endl;
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
   // This loops over all the entries in the TTree
-  for(Long64_t i=2; i<3; i++){
+  for(Long64_t i=0; i<1000; i++){
+
     // Creating the histogram for kaon mass of nearest neighbours
-    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.35,0.7);
-    auto* h_distance=new TH1F("h_distance","NN distance",100,0,1);
+    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.3,0.9);
 
 
     // Get this entry from the TTree
@@ -414,19 +354,6 @@ cout<<Energy_Bin<<endl;
     v_vertex_time_el.clear();
     v_vertex_el.clear();
     v_region_el.clear();
-
-    // pi^+
-    v_pip.clear();
-    v_beta_tof_pip.clear();
-    v_P_pip.clear();
-    v_path_pip.clear();
-    v_TOF_pip.clear();
-    v_beta_calc_pip.clear();
-    v_delta_beta_pip.clear();
-    v_vertex_pip.clear();
-    v_vertex_time_pip.clear();
-    v_vertex_pip.clear();
-    v_region_pip.clear();
 
     // pi^-
     v_pim.clear();
@@ -468,38 +395,6 @@ cout<<Energy_Bin<<endl;
     v_region_kp.clear();
     v_mass_kp.clear();
 
-    // K^-
-    v_km.clear();
-    v_beta_tof_km.clear();
-    v_P_km.clear();
-    v_path_km.clear();
-    v_TOF_km.clear();
-    v_beta_calc_km.clear();
-    v_delta_beta_km.clear();
-    v_vertex_km.clear();
-    v_vertex_time_km.clear();
-    v_vertex_km.clear();
-    v_region_km.clear();
-
-    // Particles with PID = 0
-    v_unidentified_neg.clear();
-    v_beta_tof_unidentified_neg.clear();
-    v_P_unidentified_neg.clear();
-    v_path_unidentified_neg.clear();
-    v_TOF_unidentified_neg.clear();
-    v_beta_calc_unidentified_neg.clear();
-    v_delta_beta_unidentified_neg.clear();
-    // v_vertex_unidentified_neg.clear();
-    v_vertex_time_unidentified_neg.clear();
-    // v_vertex_unidentified_neg.clear();
-    v_region_unidentified_neg.clear();
-
-    // Other particles
-    // v_othertracks.clear();
-    // v_beta_tof_othertracks.clear();
-    // v_P_othertracks.clear();
-    // v_beta_calc_othertracks.clear();
-    // v_delta_beta_othertracks.clear();
 
     // This reads the number of particles in the current entry
     Int_t Nparticles = v_p4->size();
@@ -543,37 +438,6 @@ cout<<Energy_Bin<<endl;
         v_region_el.push_back(region_el);
       }
 
-      // pi^+
-      // else if(v_PID->at(j)==211){
-      //   // Setting the 4-vector and assigning mass from PDG
-      //   pip.SetXYZM(v_p4->at(j).Px(),v_p4->at(j).Py(),v_p4->at(j).Pz(),db->GetParticle(211)->Mass());
-      //   TOF_pip = v_time->at(j); // Measured time
-      //   path_pip = v_path->at(j); // Measured path
-      //   beta_tof_pip = v_beta->at(j); // Measured beta from FTOF
-      //   // Calculating beta from momentum and mass
-      //   beta_calc_pip = pip.Rho()/(sqrt((pow(pip.Rho(),2))+(pow(pip.M(),2))));
-      //   // Difference between calculated and measured beta
-      //   delta_beta_pip = beta_calc_pip-beta_tof_pip;
-      //   vertex_time_pip = TOF_pip - path_pip / (beta_tof_pip*c); // Calculate vertex time
-      //   // Setting the vertex information now vertex time has been calculated
-      //   vertex_pip.SetXYZT(v_vertex->at(j).X(), v_vertex->at(j).Y(), v_vertex->at(j).Z(), vertex_time_pip);
-      //   region_pip = v_region->at(j);
-      //
-      //   // Pushing back all that iformation into the vectors
-      //   // Again this is done so you can store information on multiple particles
-      //   // of the same type in one place
-      //   v_pip.push_back(pip);
-      //   v_beta_tof_pip.push_back(beta_tof_pip);
-      //   v_P_pip.push_back(P_pip);
-      //   v_path_pip.push_back(path_pip);
-      //   v_TOF_pip.push_back(TOF_pip);
-      //   v_beta_calc_pip.push_back(beta_calc_pip);
-      //   v_delta_beta_pip.push_back(delta_beta_pip);
-      //   v_vertex_time_pip.push_back(vertex_time_pip);
-      //   v_vertex_pip.push_back(vertex_pip);
-      //   v_region_pip.push_back(region_pip);
-      // }
-
       // pi^-
       else if(v_PID->at(j)==-211){
         // Setting the 4-vector and assigning mass from PDG
@@ -604,35 +468,7 @@ cout<<Energy_Bin<<endl;
         v_vertex_pim.push_back(vertex_pim);
         v_region_pim.push_back(region_pim);
       }
-      else if(v_PID->at(j)==0 && v_charge->at(j)<0){
-        // Setting the 4-vector and assigning mass from PDG
-        unidentified_neg.SetXYZM(v_p4->at(j).Px(),v_p4->at(j).Py(),v_p4->at(j).Pz(),db->GetParticle(-211)->Mass());
-        TOF_unidentified_neg = v_time->at(j); // Measured time
-        path_unidentified_neg = v_path->at(j); // Measured path
-        beta_tof_unidentified_neg = v_beta->at(j); // Measured beta from FTOF
-        // Calculating beta from momentum and mass
-        beta_calc_unidentified_neg = unidentified_neg.Rho()/(sqrt((pow(unidentified_neg.Rho(),2))+(pow(unidentified_neg.M(),2))));
-        // Difference between calculated and measured beta
-        delta_beta_unidentified_neg = beta_calc_unidentified_neg-beta_tof_unidentified_neg;
-        vertex_time_unidentified_neg = TOF_unidentified_neg - path_unidentified_neg / (beta_tof_unidentified_neg*c); // Calculate vertex time
-        // Setting the vertex information now vertex time has been calculated
-        // vertex_unidentified_neg.SetXYZT(v_vertex->at(j).X(), v_vertex->at(j).Y(), v_vertex->at(j).Z(), vertex_time_unidentified_neg);
-        region_unidentified_neg = v_region->at(j);
 
-        // Pushing back all that iformation into the vectors
-        // Again this is done so you can store information on multiple particles
-        // of the same type in one place
-        v_unidentified_neg.push_back(unidentified_neg);
-        v_beta_tof_unidentified_neg.push_back(beta_tof_unidentified_neg);
-        v_P_unidentified_neg.push_back(P_unidentified_neg);
-        v_path_unidentified_neg.push_back(path_unidentified_neg);
-        v_TOF_unidentified_neg.push_back(TOF_unidentified_neg);
-        v_beta_calc_unidentified_neg.push_back(beta_calc_unidentified_neg);
-        v_delta_beta_unidentified_neg.push_back(delta_beta_unidentified_neg);
-        v_vertex_time_unidentified_neg.push_back(vertex_time_unidentified_neg);
-        // v_vertex_unidentified_neg.push_back(vertex_unidentified_neg);
-        v_region_unidentified_neg.push_back(region_unidentified_neg);
-      }
       // protons
       else if(v_PID->at(j)==2212){
         // Setting the 4-vector and assigning mass from PDG
@@ -668,7 +504,6 @@ cout<<Energy_Bin<<endl;
       else if(v_PID->at(j)==321){
         // Setting the 4-vector and assigning mass from PDG
         kp.SetXYZM(v_p4->at(j).Px(),v_p4->at(j).Py(),v_p4->at(j).Pz(),db->GetParticle(321)->Mass());
-        pip.SetXYZM(v_p4->at(j).Px(),v_p4->at(j).Py(),v_p4->at(j).Pz(),db->GetParticle(211)->Mass());
 
         TOF_kp = v_time->at(j); // Measured time
         path_kp = v_path->at(j); // Measured path
@@ -688,7 +523,6 @@ cout<<Energy_Bin<<endl;
         // Again this is done so you can store information on multiple particles
         // of the same type in one place
         v_kp.push_back(kp);
-        v_pip.push_back(pip);
         v_beta_tof_kp.push_back(beta_tof_kp);
         v_P_kp.push_back(P_kp);
         v_path_kp.push_back(path_kp);
@@ -699,37 +533,6 @@ cout<<Energy_Bin<<endl;
         v_vertex_kp.push_back(vertex_kp);
         v_region_kp.push_back(region_kp);
         v_mass_kp.push_back(mass_kp);
-      }
-
-      // K^-
-      else if(v_PID->at(j)==-321){
-        // Setting the 4-vector and assigning mass from PDG
-        km.SetXYZM(v_p4->at(j).Px(),v_p4->at(j).Py(),v_p4->at(j).Pz(),db->GetParticle(-321)->Mass());
-        TOF_km = v_time->at(j); // Measured time
-        path_km = v_path->at(j); // Measured path
-        beta_tof_km = v_beta->at(j); // Measured beta from FTOF
-        // Calculating beta from momentum and mass
-        beta_calc_km = km.Rho()/(sqrt((pow(km.Rho(),2))+(pow(km.M(),2))));
-        // Difference between calculated and measured beta
-        delta_beta_km = beta_calc_km-beta_tof_km;
-        vertex_time_km = TOF_km - path_km / (beta_tof_km*c); // Calculate vertex time
-        // Setting the vertex information now vertex time has been calculated
-        vertex_km.SetXYZT(v_vertex->at(j).X(), v_vertex->at(j).Y(), v_vertex->at(j).Z(), vertex_time_km);
-        region_km = v_region->at(j);
-
-        // Pushing back all that iformation into the vectors
-        // Again this is done so you can store information on multiple particles
-        // of the same type in one place
-        v_km.push_back(km);
-        v_beta_tof_km.push_back(beta_tof_km);
-        v_P_km.push_back(P_km);
-        v_path_km.push_back(path_km);
-        v_TOF_km.push_back(TOF_km);
-        v_beta_calc_km.push_back(beta_calc_km);
-        v_delta_beta_km.push_back(delta_beta_km);
-        v_vertex_time_km.push_back(vertex_time_km);
-        v_vertex_km.push_back(vertex_km);
-        v_region_km.push_back(region_km);
       }
     }
 
@@ -745,8 +548,6 @@ cout<<Energy_Bin<<endl;
       miss2 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0) - v_pr.at(0);
       // Missing mass of e', looking for phi meson background
       miss3 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pr.at(0);
-      // missing mass assuming kaon is pion
-      misspion = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_pip.at(0);
       // Invariant mass of p pi^{-}, looking for lambda ground state
       lambda = v_pr.at(0) + v_pim.at(0);
       // Missing mass of all detected particles, should have peak at 0
@@ -799,10 +600,10 @@ cout<<Energy_Bin<<endl;
       // }
 
       //   // Option 4: cos < 0 and photon energy >= 6 GeV
-      if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-        h_miss1_NN->Delete();
-        continue;
-      }
+      // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
+      //   h_miss1_NN->Delete();
+      //   continue;
+      // }
 
 
 
@@ -826,12 +627,13 @@ cout<<Energy_Bin<<endl;
 
       // Only looking at nearest neighbours for events with good missing mass values
       // if(miss1.M() > 0.7 && miss1.M() < 1.6){
-      cout<<"event no: "<<i<<endl;
 
       Int_t size=0;
       // Loop over all other events
       for(Long64_t m = 0; m < nentries; m++){
         if(m==i)continue;
+
+        Nearest_Neighbour_Size = v_NN_d.size();
 
 
         // Gets information on event m
@@ -921,10 +723,10 @@ cout<<Energy_Bin<<endl;
           // }
 
           //   // Option 4: cos < 0 and photon energy >= 6 GeV
-          if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-            h_miss1_NN->Delete();
-            continue;
-          }
+          // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
+          //   h_miss1_NN->Delete();
+          //   continue;
+          // }
 
           // Calculate difference between cos thetas
           distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2)) /* +
@@ -932,7 +734,7 @@ cout<<Energy_Bin<<endl;
 
 
           // If there are no entries yet then just push back the values
-          if(v_NN_d.size()<1){
+          if(Nearest_Neighbour_Size<1){
             v_NN_d.push_back(distance);
             v_NN_mKp.push_back(mass_kp_other);
           }
@@ -940,10 +742,10 @@ cout<<Energy_Bin<<endl;
           else{
 
             // Loop over current stored nearest neighbours, starting at largest distance
-            for(Int_t k = v_NN_d.size() - 1; k >= 0; k --){
+            for(Int_t k = Nearest_Neighbour_Size - 1; k >= 0; k --){
 
               // Skip events with distance greater than the max in vector if there are already 500
-              if(v_NN_d.size() == 500 && distance > v_NN_d.at(499)) break;
+              if(Nearest_Neighbour_Size == NN && distance > v_NN_d.at(NN-1)) break;
 
 
 
@@ -958,8 +760,8 @@ cout<<Energy_Bin<<endl;
                 v_NN_mKp.insert(itPos2MM, mass_kp_other);
 
                 // Removing the largest value if there are over 500 in the vector
-                if(v_NN_d.size()==501) v_NN_d.pop_back();
-                if(v_NN_mKp.size()==501) v_NN_mKp.pop_back();
+                if(Nearest_Neighbour_Size==NN+1) v_NN_d.pop_back();
+                if(Nearest_Neighbour_Size==NN+1) v_NN_mKp.pop_back();
 
                 break;
               }
@@ -978,8 +780,8 @@ cout<<Energy_Bin<<endl;
                 v_NN_mKp.insert(itPosMM, mass_kp_other);
 
                 // Removing the largest value if there are over 500 in the vector
-                if(v_NN_d.size()==501) v_NN_d.pop_back();
-                if(v_NN_mKp.size()==501) v_NN_mKp.pop_back();
+                if(Nearest_Neighbour_Size==NN+1) v_NN_d.pop_back();
+                if(Nearest_Neighbour_Size==NN+1) v_NN_mKp.pop_back();
 
                 break;
               }
@@ -993,13 +795,12 @@ cout<<Energy_Bin<<endl;
       // Plotting and fitting the nearest neighbours
 
       // If there are values for the nearest neighbours
-      if(v_NN_mKp.size() > 0){
-        Int_t k = v_NN_mKp.size();
+      if(Nearest_Neighbour_Size > 0){
+        Int_t k = Nearest_Neighbour_Size;
         // Loop over all the nearest neighbour values
         for(Int_t q = 0; q < k; q++){
           // Fill the histogram with the missing mass values for the nearest neighbours
           h_miss1_NN->Fill(v_NN_mKp.at(q));
-          h_distance->Fill(v_NN_d.at(q));
           // cout<<v_NN_mKp.at(q)<<endl;
         }
 
@@ -1010,12 +811,12 @@ cout<<Energy_Bin<<endl;
         func1->SetParameter(3,h_miss1_NN->GetMaximum() / 2.0);
         func1->SetParameter(4,-1);
         func1->SetParameter(5,0);
-        // func1->SetParameter(6,0);
+        func1->SetParameter(6,0);
 
         // Making sure the amplitude is positive to avoid negative Q weight values
         func1->SetParLimits(0,0,h_miss1_NN->GetMaximum() * 3);
         func1->SetParLimits(2,0, 0.09);
-        func1->SetParLimits(5,0, 100);
+        // func1->SetParLimits(5,0, 100);
 
         // Setting parameters before fitting for 2nd order polynomial and gaus
         func4->SetParameter(0,h_miss1_NN->GetMaximum());
@@ -1033,7 +834,7 @@ cout<<Energy_Bin<<endl;
         func4->SetParLimits(3,0,100);
 
         h_miss1_NN->Sumw2();
-        h_miss1_NN->Fit("func1","RL");
+        h_miss1_NN->Fit("func1","RLQ");
 
         func2->FixParameter(0,func1->GetParameter(0));
         func2->FixParameter(1,func1->GetParameter(1));
@@ -1041,9 +842,9 @@ cout<<Energy_Bin<<endl;
         func3->FixParameter(0,func1->GetParameter(3));
         func3->FixParameter(1,func1->GetParameter(4));
         func3->FixParameter(2,func1->GetParameter(5));
-        // func3->FixParameter(3,func1->GetParameter(6));
+        func3->FixParameter(3,func1->GetParameter(6));
 
-        h_miss1_NN->Fit("func4","RL");
+        h_miss1_NN->Fit("func4","RLQ");
 
         func5->FixParameter(0,func4->GetParameter(0));
         func5->FixParameter(1,func4->GetParameter(1));
@@ -1090,8 +891,6 @@ cout<<Energy_Bin<<endl;
 
       if(lambda.M() < 1.14){
         hmiss_1_2->Fill(miss1.M());
-        Good++;
-
 
 
         if(miss3.M()> 0.9 && miss3.M() < 1.1) hmiss_1_phi->Fill(miss1.M());
@@ -1114,39 +913,38 @@ cout<<Energy_Bin<<endl;
       }
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
-    auto *c1=new TCanvas("c1","",800,800);
-    h_miss1_NN->Draw();
-    func1->SetLineColor(kYellow);
-    func2->SetLineColor(kPink);
-    func3->SetLineColor(kOrange);
-    func1->Draw("same");
-    func2->Draw("same");
-    func3->Draw("same");
+    // auto *c1=new TCanvas("c1","",800,800);
+    // h_miss1_NN->Draw();
+    // func1->SetLineColor(kYellow);
+    // func2->SetLineColor(kBlack);
+    // func3->SetLineColor(kOrange);
+    // func1->Draw("same");
+    // func2->Draw("same");
+    // func3->Draw("same");
+    //
+    // auto *c2=new TCanvas("c2","",800,800);
+    // h_miss1_NN->Draw();
+    // func5->SetLineColor(kBlue);
+    // func6->SetLineColor(kBlack);
+    // func7->SetLineColor(kGreen);
+    // // func4->Draw("same");
+    // func5->Draw("same");
+    // func6->Draw("same");
+    // func7->Draw("same");
+    //
+    // auto *c3=new TCanvas("c3","",800,800);
+    // h_distance->Draw();
 
-    auto *c2=new TCanvas("c2","",800,800);
-    h_miss1_NN->Draw();
-    func5->SetLineColor(kBlue);
-    func6->SetLineColor(kBlack);
-    func7->SetLineColor(kGreen);
-    // func4->Draw("same");
-    func5->Draw("same");
-    func6->Draw("same");
-    func7->Draw("same");
-
-    auto *c3=new TCanvas("c3","",800,800);
-    h_distance->Draw();
-
-    // h_miss1_NN->Delete();
-    // TF.Fill();
+    h_miss1_NN->Delete();
+    t2.Fill();
   } // Event loop
 
 
-  // Save root file
-  // fileOutput1->Write();
+
   // Save root file with TTree friend
-  // ff->Write();
-  // // Close file with TTree friend
-  // ff->Close();
+  fout->Write();
+  // Close file with TTree friend
+  fout->Close();
 
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
