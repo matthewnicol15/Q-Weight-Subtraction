@@ -28,10 +28,11 @@ void Strangeness_1_RGA_Q_Weight(){
   auto start = std::chrono::high_resolution_clock::now();
 
   // Read file with information on vectors
-  gROOT->ProcessLine(".L ../Loader.C+");
+  gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
 
   // Read input root file and assign it to 'f'
-  TFile *f = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
+  TFile *f = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
+  // TFile *f = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_260521_01.root");
   // Read TTree within root file and assign it to 't1'
   TTree *t1 = (TTree*)f->Get("RGA_Skim4_Tree_260521_01");
 
@@ -41,16 +42,17 @@ void Strangeness_1_RGA_Q_Weight(){
 
   // Creating TTree friend
   // File to store TTree friend
-  TFile *ff = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_260521_05.root","recreate");
+  TFile *ff = new TFile("/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_test_010621_04.root","recreate");
+  // TFile *ff = new TFile("/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_500_010621_04y.root","recreate");
   // TTree friend is copy of original TTree
   TTree TF("TF","it's a tree!");
 
   Int_t Good=0; // COunt number of events passing cuts
 
   // Functions to fit Q weight plots
-  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.36,0.7);
+  auto* func1=new TF1("func1","gaus(0)+pol2(3)",0.36,0.7);
   auto* func2=new TF1("func2","gaus(0)",0.36,0.7);
-  auto* func3=new TF1("func3","pol3(0)",0.36,0.7);
+  auto* func3=new TF1("func3","pol2(0)",0.36,0.7);
 
   // Functions to fit Q weight plots
   auto* func4=new TF1("func4","gaus(0)+gaus(3)+pol2(6)",0.36,0.7);
@@ -121,11 +123,11 @@ void Strangeness_1_RGA_Q_Weight(){
 
   // Path and name for the output file to save
   // Running local
-  // TFile* fileOutput1=new TFile("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_260521_05.root","recreate");
+  // TFile* fileOutput1=new TFile("/mnt/f/PhD/Analysis_Output/RGA/Skim4/Inbending/Strangeness_1/PID/S1_RGA_Skim4_e_Kp_FD_ppi_no_FD_Inbending_NN_260521_04y.root","recreate");
   // Running at JLab
-  // TFile* fileOutput1=new TFile("/volatile/clas12/matthewn/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_260521_05.root","recreate");
+  // TFile* fileOutput1=new TFile("/volatile/clas12/matthewn/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_260521_04y.root","recreate");
   // Running at York
-  TFile* fileOutput1=new TFile("/shared/storage/physhad/JLab/mn688/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_260521_01.root","recreate");
+  // TFile* fileOutput1=new TFile("/shared/storage/physhad/JLab/mn688/Dibaryon/S1_RGA_Skim4_e_Kp_FD_Inbending_NN_010621_01.root","recreate");
 
 
   // Getting particle database to use for masses
@@ -355,12 +357,12 @@ void Strangeness_1_RGA_Q_Weight(){
   // Reads the total number of entries in the TTree
   // Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 500000;
+  Long64_t nentries = 10000;
   cout<<t1->GetEntries()<<endl;
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
   // This loops over all the entries in the TTree
-  for(Long64_t i=0; i<nentries;i++){
+  for(Long64_t i=0; i<nentries; i++){
     // Creating the histogram for kaon mass of nearest neighbours
     auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.35,0.7);
 
@@ -372,24 +374,7 @@ void Strangeness_1_RGA_Q_Weight(){
     v_NN_d.clear();
     v_NN_mKp.clear();
 
-    // Setting parameters before fitting for 3rd order polynomial and gaus
-    func1->SetParameter(0,30);
-    func1->FixParameter(1,0.49368);
-    func1->SetParameter(2,0.05);
-    // func1->SetParameter(3,-7);
-    // func1->SetParameter(4,11);
-    // func1->SetParameter(5,0);
 
-    // Setting parameters before fitting for 2nd order polynomial and gaus
-    func4->SetParameter(0,25);
-    func4->FixParameter(1,0.49368);
-    func4->SetParameter(2,0.05);
-    func4->SetParameter(3,5);
-    func4->FixParameter(4,0.49368);
-    func4->SetParameter(5,0.02);
-    // func4->SetParameter(6,-7);
-    // func4->SetParameter(7,11);
-    // func4->SetParameter(8,0);
 
     // Setting Q weights each event
     Q_Weight_1a = -10;
@@ -782,12 +767,12 @@ void Strangeness_1_RGA_Q_Weight(){
 
       // Looking at different bins of cos and photon energy
       // Option 1: cos >= 0 and photon energy < 6 GeV
-      if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
-        h_miss1_NN->Delete();
-        continue;
-      }
+      // if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
+      //   h_miss1_NN->Delete();
+      //   continue;
+      // }
 
-        // Option 2: cos >= 0 and photon energy >= 6 GeV
+      // Option 2: cos >= 0 and photon energy >= 6 GeV
       // if(Cos_Theta_Kp_COM < 0 || photon_energy < 6){
       //   h_miss1_NN->Delete();
       //   continue;
@@ -800,10 +785,10 @@ void Strangeness_1_RGA_Q_Weight(){
       // }
 
       //   // Option 4: cos < 0 and photon energy >= 6 GeV
-      // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-      //   h_miss1_NN->Delete();
-      //   continue;
-      // }
+      if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
+        h_miss1_NN->Delete();
+        continue;
+      }
 
 
 
@@ -904,12 +889,12 @@ void Strangeness_1_RGA_Q_Weight(){
 
           // Looking at different bins of cos and photon energy
           // Option 1: cos >= 0 and photon energy < 6 GeV
-          if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
-            h_miss1_NN->Delete();
-            continue;
-          }
+          // if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
+          //   h_miss1_NN->Delete();
+          //   continue;
+          // }
 
-            // Option 2: cos >= 0 and photon energy >= 6 GeV
+          // Option 2: cos >= 0 and photon energy >= 6 GeV
           // if(Cos_Theta_Kp_COM < 0 || photon_energy < 6){
           //   h_miss1_NN->Delete();
           //   continue;
@@ -922,14 +907,13 @@ void Strangeness_1_RGA_Q_Weight(){
           // }
 
           //   // Option 4: cos < 0 and photon energy >= 6 GeV
-          // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-          //   h_miss1_NN->Delete();
-          //   continue;
-          // }
+          if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
+            h_miss1_NN->Delete();
+            continue;
+          }
 
           // Calculate difference between cos thetas
-          distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2) +
-          pow((photon_energy - photon_energy_other) / photon_energy_range,2));
+          distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2);
 
           // cout<<v_kp_other.at(0).Rho()<<" "<<beta_tof_kp_other<<" "<<mass_kp_other<<" "<<miss1_other.M()<<endl;
 
@@ -1004,8 +988,38 @@ void Strangeness_1_RGA_Q_Weight(){
           h_miss1_NN->Fill(v_NN_mKp.at(q));
           // cout<<v_NN_mKp.at(q)<<endl;
         }
+
+        // Setting parameters before fitting for 3rd order polynomial and gaus
+        func1->SetParameter(0,h_miss1_NN->GetMaximum());
+        func1->FixParameter(1,0.49368);
+        func1->SetParameter(2,0.025);
+        func1->SetParameter(3,h_miss1_NN->GetMaximum() / 2.0);
+        func1->SetParameter(4,-1);
+        func1->SetParameter(5,0);
+        // func1->SetParameter(6,0);
+
+        // Making sure the amplitude is positive to avoid negative Q weight values
+        func1->SetParLimits(0,0,h_miss1_NN->GetMaximum() * 3);
+        func1->SetParLimits(2,0, 0.09);
+        func1->SetParLimits(5,0, 100);
+
+        // Setting parameters before fitting for 2nd order polynomial and gaus
+        func4->SetParameter(0,h_miss1_NN->GetMaximum());
+        func4->FixParameter(1,0.49368);
+        func4->SetParameter(2,0.05);
+        func4->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
+        func4->FixParameter(4,0.49368);
+        func4->SetParameter(5,0.02);
+        func4->SetParameter(6,h_miss1_NN->GetMaximum() / 2.0);
+        func4->SetParameter(7,-1);
+        func4->SetParameter(8,0);
+
+        // Making sure the amplitude is positive to avoid negative Q weight values
+        func4->SetParLimits(0,0,100);
+        func4->SetParLimits(3,0,100);
+
         h_miss1_NN->Sumw2();
-        h_miss1_NN->Fit("func1","RLE");
+        h_miss1_NN->Fit("func1","RL");
 
         func2->FixParameter(0,func1->GetParameter(0));
         func2->FixParameter(1,func1->GetParameter(1));
@@ -1013,9 +1027,10 @@ void Strangeness_1_RGA_Q_Weight(){
         func3->FixParameter(0,func1->GetParameter(3));
         func3->FixParameter(1,func1->GetParameter(4));
         func3->FixParameter(2,func1->GetParameter(5));
-        func3->FixParameter(3,func1->GetParameter(6));
+        // func3->FixParameter(3,func1->GetParameter(6));
 
-        h_miss1_NN->Fit("func4","RLE");
+        h_miss1_NN->Fit("func4","RL");
+
         func5->FixParameter(0,func4->GetParameter(0));
         func5->FixParameter(1,func4->GetParameter(1));
         func5->FixParameter(2,func4->GetParameter(2));
@@ -1027,30 +1042,35 @@ void Strangeness_1_RGA_Q_Weight(){
         func7->FixParameter(2,func4->GetParameter(8));
 
         // Calculating the signal and background for 1st fit
-        sig_1 = func2->Eval(mass_kp_other);
-        back_1 = func3->Eval(mass_kp_other);
+        sig_1 = func2->Eval(mass_kp);
+        back_1 = func3->Eval(mass_kp);
 
         // Calculating the signal and background for 2nd fit
-        sig_2 = func5->Eval(mass_kp_other) + func6->Eval(mass_kp_other);
-        back_2 = func7->Eval(mass_kp_other);
+        sig_2 = func5->Eval(mass_kp) + func6->Eval(mass_kp);
+        back_2 = func7->Eval(mass_kp);
 
         // Calculating Q weight for 1st fit using 2 methods
         Q_Weight_1a = sig_1 / (sig_1 + back_1);
-        Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp_other)));
+        Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
 
         // Calculating Q weight for 2nd fit using 2 methods
         Q_Weight_2a = sig_2 / (sig_2 + back_2);
-        Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp_other)));
+        Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
         // cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<" "<<endl;
       }
 
       // Setting Q weight to 0 for events without "good" missing masses
-      else Q_Weight_1a = 0, Q_Weight_1b = 0, Q_Weight_2a = 0, Q_Weight_2b = 0;
+      else{
+        Q_Weight_1a = 0;
+        Q_Weight_1b = 0;
+        Q_Weight_2a = 0;
+        Q_Weight_2b = 0;
+      }
       h_mass_kp_Qweights_1a->Fill(mass_kp,Q_Weight_1a);
       h_mass_kp_Qweights_1b->Fill(mass_kp,Q_Weight_1b);
       h_mass_kp_Qweights_2a->Fill(mass_kp,Q_Weight_2a);
       h_mass_kp_Qweights_2b->Fill(mass_kp,Q_Weight_2b);
-
+      if(Q_Weight_1a < 0) cout<<"Bad! "<<mass_kp<<" "<<Q_Weight_1a<<" "<<sig_1<<" "<<back_1<<endl;
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -1080,27 +1100,29 @@ void Strangeness_1_RGA_Q_Weight(){
       }
       // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
+    // auto *c1=new TCanvas("c1","",800,800);
+    // h_miss1_NN->Draw();
+    // func1->SetLineColor(kYellow);
+    // func2->SetLineColor(kPink);
+    // func3->SetLineColor(kOrange);
+    // func1->Draw("same");
+    // func2->Draw("same");
+    // func3->Draw("same");
+    //
+    // auto *c2=new TCanvas("c2","",800,800);
+    // h_miss1_NN->Draw();
+    // func5->SetLineColor(kBlue);
+    // func6->SetLineColor(kBlack);
+    // func7->SetLineColor(kGreen);
+    // // func4->Draw("same");
+    // func5->Draw("same");
+    // func6->Draw("same");
+    // func7->Draw("same");
 
     h_miss1_NN->Delete();
     TF.Fill();
   } // Event loop
-  // auto *c1=new TCanvas("c1","",800,800);
-  // h_miss1_NN->Draw();
-  // func2->SetLineColor(kBlue);
-  // func3->SetLineColor(kGreen);
-  // func1->Draw("same");
-  // func2->Draw("same");
-  // func3->Draw("same");
-  //
-  // auto *c2=new TCanvas("c2","",800,800);
-  // h_miss1_NN->Draw();
-  // func5->SetLineColor(kBlue);
-  // func6->SetLineColor(kBlue);
-  // func7->SetLineColor(kGreen);
-  // // func4->Draw("same");
-  // func5->Draw("same");
-  // func6->Draw("same");
-  // func7->Draw("same");
+
 
   // Save root file
   fileOutput1->Write();
