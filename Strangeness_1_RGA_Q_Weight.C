@@ -1,7 +1,7 @@
 // Analysis split into bins of photon energy
 // Select energy range below
 
-Int_t Energy_Bin = 1; // Set to the energy bin you want to look at
+Int_t Energy_Bin =6 ; // Set to the energy bin you want to look at
 // Photon Energy Bins [GeV]
 // [0]  0-3,
 // [1]  3-4
@@ -45,7 +45,7 @@ Int_t Nearest_Neighbour_Size; // Current size of vector of nearest neighbours
 
 // Macro name
 void Strangeness_1_RGA_Q_Weight(){
-cout<<Energy_Bin<<endl;
+  cout<<Energy_Bin<<endl;
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -58,7 +58,7 @@ cout<<Energy_Bin<<endl;
   Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
   Input_TTree_Name<<"Energy_"<<Energy_Bin;
 
-  Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_test_160621_"<<Energy_Bin<<".root";
+  Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_test_180621_"<<Energy_Bin<<".root";
   Output_TTree_Name<<"Energy_"<<Energy_Bin;
 
   // Read input root file and assign it to 'f'
@@ -68,7 +68,7 @@ cout<<Energy_Bin<<endl;
 
   // Recording the calculated mass of kaons for Q weights
   Double_t mass_kp, mass_kp_other;
-
+  Int_t fitStatus1, fitStatus2;
 
   // Creating TTree friend
   // File to store TTree friend
@@ -79,9 +79,9 @@ cout<<Energy_Bin<<endl;
 
 
   // Functions to fit Q weight plots
-  auto* func1=new TF1("func1","gaus(0)+pol3(3)",0.36,0.7);
+  auto* func1=new TF1("func1","gaus(0)+pol1(3)",0.36,0.7);
   auto* func2=new TF1("func2","gaus(0)",0.36,0.7);
-  auto* func3=new TF1("func3","pol3(0)",0.36,0.7);
+  auto* func3=new TF1("func3","pol1(0)",0.36,0.7);
 
   // Functions to fit Q weight plots
   auto* func4=new TF1("func4","gaus(0)+gaus(3)+pol2(6)",0.36,0.7);
@@ -143,6 +143,8 @@ cout<<Energy_Bin<<endl;
   t1->SetBranchAddress("triggerno",&readtriggerno);
 
   // Adding the Q Weights to the TTree friend
+  t2.Branch("fitStatus1",&fitStatus1);
+  t2.Branch("fitStatus2",&fitStatus2);
   t2.Branch("mass_kp",&mass_kp);
   t2.Branch("Q_Weight_1a",&Q_Weight_1a);
   t2.Branch("Q_Weight_1b",&Q_Weight_1b);
@@ -308,17 +310,17 @@ cout<<Energy_Bin<<endl;
   Double_t c=30;  // Speed of light used for calculating vertex time
 
   // Reads the total number of entries in the TTree
-  // Long64_t nentries = t1->GetEntries();
+  Long64_t nentries = t1->GetEntries();
   // You can just run over a set number of events for fast analysis
-  Long64_t nentries = 1000000;
+  // Long64_t nentries = 1000000;
   cout<<t1->GetEntries()<<endl;
   // This is used to print out the percentage of events completed so far
   Int_t Percentage = nentries/100;
   // This loops over all the entries in the TTree
-  for(Long64_t i=0; i<1000; i++){
-
+  for(Long64_t i = 0; i < nentries; i++){
+    if((i/10)%10==0 && i%10==0)cout<<(i/nentries)*100<<endl;
     // Creating the histogram for kaon mass of nearest neighbours
-    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",60,0.3,0.9);
+    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.3,0.9);
 
 
     // Get this entry from the TTree
@@ -518,7 +520,6 @@ cout<<Energy_Bin<<endl;
         region_kp = v_region->at(j);
         mass_kp = sqrt((pow(v_p4->at(j).Rho(),2) / (pow(beta_tof_kp,2))) - pow(v_p4->at(j).Rho(),2));
 
-
         // Pushing back all that iformation into the vectors
         // Again this is done so you can store information on multiple particles
         // of the same type in one place
@@ -538,6 +539,10 @@ cout<<Energy_Bin<<endl;
 
     // Here you can apply conditions on the events you want to analyse
     if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
+      if(v_mass_kp.at(0) > 0.65){
+        h_miss1_NN->Delete();
+        continue;
+      }
 
       // Select which region you want the particles to go in
       // if(v_region_kp.at(0) == 1 && v_region_pr.at(0) == 1 && v_region_pim.at(0) == 1){
@@ -580,32 +585,6 @@ cout<<Energy_Bin<<endl;
       // Getting the photon energy
       photon_energy = photon.E();
 
-      // Looking at different bins of cos and photon energy
-      // Option 1: cos >= 0 and photon energy < 6 GeV
-      // if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
-      //   h_miss1_NN->Delete();
-      //   continue;
-      // }
-
-      // Option 2: cos >= 0 and photon energy >= 6 GeV
-      // if(Cos_Theta_Kp_COM < 0 || photon_energy < 6){
-      //   h_miss1_NN->Delete();
-      //   continue;
-      // }
-
-      //   // Option 3: cos < 0 and photon energy < 6 GeV
-      // if(Cos_Theta_Kp_COM >= 0 || photon_energy >= 6){
-      //   h_miss1_NN->Delete();
-      //   continue;
-      // }
-
-      //   // Option 4: cos < 0 and photon energy >= 6 GeV
-      // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-      //   h_miss1_NN->Delete();
-      //   continue;
-      // }
-
-
 
       // Plotting the cos(theta) distribution of K+
       h_cos_theta_kaonp->Fill(Cos_Theta_Kp_COM);
@@ -630,7 +609,7 @@ cout<<Energy_Bin<<endl;
 
       Int_t size=0;
       // Loop over all other events
-      for(Long64_t m = 0; m < nentries; m++){
+      for(Long64_t m = 0; m < 10000; m++){
         if(m==i)continue;
 
         Nearest_Neighbour_Size = v_NN_d.size();
@@ -690,7 +669,7 @@ cout<<Energy_Bin<<endl;
           mass_kp_other = sqrt((pow(v_kp_other.at(0).Rho(),2) / (pow(beta_tof_kp_other,2))) - pow(v_kp_other.at(0).Rho(),2));
 
           // cout<<v_kp_other.size()<<" "<<v_beta->size()<<endl;
-          // if(miss1_other.M() < 0.7 || miss1_other.M() > 1.6)continue;
+          if(mass_kp_other > 0.65)continue;
 
           // Making the 3 vector for COM frame of reference
           COM_3_other = COM_other.BoostVector();
@@ -702,31 +681,6 @@ cout<<Energy_Bin<<endl;
           // Get cos theta and gamma energy here
           Cos_Theta_Kp_COM_other = cos(kaon_boost_com_other.Theta());
           photon_energy_other = photon_other.E();
-
-          // Looking at different bins of cos and photon energy
-          // Option 1: cos >= 0 and photon energy < 6 GeV
-          // if(Cos_Theta_Kp_COM < 0 || photon_energy >= 6){
-          //   h_miss1_NN->Delete();
-          //   continue;
-          // }
-
-          // Option 2: cos >= 0 and photon energy >= 6 GeV
-          // if(Cos_Theta_Kp_COM < 0 || photon_energy < 6){
-          //   h_miss1_NN->Delete();
-          //   continue;
-          // }
-
-          //   // Option 3: cos < 0 and photon energy < 6 GeV
-          // if(Cos_Theta_Kp_COM >= 0 || photon_energy >= 6){
-          //   h_miss1_NN->Delete();
-          //   continue;
-          // }
-
-          //   // Option 4: cos < 0 and photon energy >= 6 GeV
-          // if(Cos_Theta_Kp_COM >= 0 || photon_energy < 6){
-          //   h_miss1_NN->Delete();
-          //   continue;
-          // }
 
           // Calculate difference between cos thetas
           distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2)) /* +
@@ -814,8 +768,8 @@ cout<<Energy_Bin<<endl;
         func1->SetParameter(6,0);
 
         // Making sure the amplitude is positive to avoid negative Q weight values
-        func1->SetParLimits(0,0,h_miss1_NN->GetMaximum() * 3);
-        func1->SetParLimits(2,0, 0.09);
+        func1->SetParLimits(0,h_miss1_NN->GetMaximum() / 3.0,h_miss1_NN->GetMaximum() * 1.2);
+        func1->SetParLimits(2,0.01, 0.09);
         // func1->SetParLimits(5,0, 100);
 
         // Setting parameters before fitting for 2nd order polynomial and gaus
@@ -834,17 +788,21 @@ cout<<Energy_Bin<<endl;
         func4->SetParLimits(3,0,100);
 
         h_miss1_NN->Sumw2();
-        h_miss1_NN->Fit("func1","RLQ");
+        fitStatus1 =  h_miss1_NN->Fit("func1","RQ");
+
+        // cout<<fitStatus<<endl;
+
 
         func2->FixParameter(0,func1->GetParameter(0));
         func2->FixParameter(1,func1->GetParameter(1));
         func2->FixParameter(2,func1->GetParameter(2));
         func3->FixParameter(0,func1->GetParameter(3));
         func3->FixParameter(1,func1->GetParameter(4));
-        func3->FixParameter(2,func1->GetParameter(5));
-        func3->FixParameter(3,func1->GetParameter(6));
+        // func3->FixParameter(2,func1->GetParameter(5));
+        // func3->FixParameter(3,func1->GetParameter(6));
 
-        h_miss1_NN->Fit("func4","RLQ");
+        fitStatus2 = h_miss1_NN->Fit("func4","RQ");
+        // cout<<fitStatus<<endl;
 
         func5->FixParameter(0,func4->GetParameter(0));
         func5->FixParameter(1,func4->GetParameter(1));
@@ -871,7 +829,8 @@ cout<<Energy_Bin<<endl;
         // Calculating Q weight for 2nd fit using 2 methods
         Q_Weight_2a = sig_2 / (sig_2 + back_2);
         Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
-        // cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<" "<<endl;
+        // cout<<Q_Weight_1a<<" "<<Q_Weight_1b<<" "<<Q_Weight_2a<<" "<<Q_Weight_2b<<" "<<mass_kp<<endl;
+        // cout<<sig_1<<" "<<back_1<<" "<<sig_2<<" "<<back_2<<" "<<endl;
       }
 
       // Setting Q weight to 0 for events without "good" missing masses
@@ -885,7 +844,7 @@ cout<<Energy_Bin<<endl;
       h_mass_kp_Qweights_1b->Fill(mass_kp,Q_Weight_1b);
       h_mass_kp_Qweights_2a->Fill(mass_kp,Q_Weight_2a);
       h_mass_kp_Qweights_2b->Fill(mass_kp,Q_Weight_2b);
-      if(Q_Weight_1a < 0) cout<<"Bad! "<<mass_kp<<" "<<Q_Weight_1a<<" "<<sig_1<<" "<<back_1<<endl;
+      // if(Q_Weight_1a < 0) cout<<"Bad! "<<mass_kp<<" "<<Q_Weight_1a<<" "<<sig_1<<" "<<back_1<<endl;
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -931,7 +890,7 @@ cout<<Energy_Bin<<endl;
     // func5->Draw("same");
     // func6->Draw("same");
     // func7->Draw("same");
-    //
+
     // auto *c3=new TCanvas("c3","",800,800);
     // h_distance->Draw();
 
