@@ -5,10 +5,10 @@ TH1F *hmass_kp = (TH1F*)f1.Get("hmass_kp");
 TH1F *hmiss = (TH1F*)f1.Get("hmiss_1");
 
 // Functions to fit Q weight plots
-auto* func4=new TF1("func4","gaus(0)+gaus(3)+pol2(6)",0.36,0.65);
+auto* func4=new TF1("func4","[0]*exp(-pow(x-[1],2)/(2*pow([2],2))) + [3]*exp(-pow(x-[4],2)/(2*pow(2.67*[2],2))) + pol1(5)",0.36,0.65);
 auto* func5=new TF1("func5","gaus(0)",0.36,0.65);
 auto* func6=new TF1("func6","gaus(0)",0.36,0.65);
-auto* func8=new TF1("func8","[0]*exp(-pow(x-[1],2)/(2*pow([2],2)))",0.36,0.65);
+// auto* func8=new TF1("func8","[0]*exp(-pow(x-[1],2)/(2*pow([2],2)))",0.36,0.65);
 auto* func7=new TF1("func7","pol2(0)",0.36,0.65);
 
 
@@ -37,10 +37,10 @@ func5->FixParameter(1,func4->GetParameter(1));
 func5->FixParameter(2,func4->GetParameter(2));
 func6->FixParameter(0,func4->GetParameter(3));
 func6->FixParameter(1,func4->GetParameter(4));
-func6->FixParameter(2,func4->GetParameter(5));
-func7->FixParameter(0,func4->GetParameter(6));
-func7->FixParameter(1,func4->GetParameter(7));
-func7->FixParameter(2,func4->GetParameter(8));
+func6->FixParameter(2,func4->GetParameter(2) * 2.67);
+func7->FixParameter(0,func4->GetParameter(5));
+func7->FixParameter(1,func4->GetParameter(6));
+// func7->FixParameter(2,func4->GetParameter(7));
 
 cout<<func4->GetParameter(2) / func4->GetParameter(5)<<endl;
 
