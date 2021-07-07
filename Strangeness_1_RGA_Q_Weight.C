@@ -1,7 +1,7 @@
 // Analysis split into bins of photon energy
 // Select energy range below
 
-Int_t Energy_Bin = 12 ; // Set to the energy bin you want to look at
+Int_t Energy_Bin = 0 ; // Set to the energy bin you want to look at
 // Photon Energy Bins [GeV]
 // [0]  0-3,
 // [1]  3-4
@@ -51,17 +51,18 @@ void Strangeness_1_RGA_Q_Weight(){
   auto start = std::chrono::high_resolution_clock::now();
 
   // Read file with information on vectors
-  gROOT->ProcessLine(".L ~/work/Macros/Q_Weight/Loader.C+");
-  // gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
+  // gROOT->ProcessLine(".L ~/work/Macros/Q_Weight/Loader.C+");
+  gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
 
   std::ostringstream Input_File_Name, Output_File_Name; // String for root file names
   std::ostringstream Input_TTree_Name, Output_TTree_Name; // String for TTree names
 
-  Input_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
-  // Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
+  // Input_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
+  Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
   Input_TTree_Name<<"Energy_"<<Energy_Bin;
 
-  Output_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_290621_"<<Energy_Bin<<".root";
+  Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_060721_"<<Energy_Bin<<".root";
+  // Output_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_060721_"<<Energy_Bin<<".root";
   Output_TTree_Name<<"Energy_"<<Energy_Bin;
 
   // Read input root file and assign it to 'f'
@@ -365,10 +366,10 @@ void Strangeness_1_RGA_Q_Weight(){
     // Q_Weight_2b = -10;
 
     // This prints out the percentage of events completed so far
-    if (i % Percentage == 0){
-      fprintf (stderr, "%lld\r", i/Percentage);
-      fflush (stderr);
-    }
+    // if (i % Percentage == 0){
+    //   fprintf (stderr, "%lld\r", i/Percentage);
+    //   fflush (stderr);
+    // }
 
     // All the vectors must be cleared at the start of each event entry
     // e^-
@@ -712,7 +713,7 @@ void Strangeness_1_RGA_Q_Weight(){
             // Getting the kaon information before boosting
             kaon_boost_com_other = v_kp_other.at(0);
             // Boosting the other kaon into COM frame of reference
-            kaon_boost_com_other.Boost(COM_3_other);
+            kaon_boost_com_other.Boost(-1.0*COM_3_other);
 
             // Get cos theta and gamma energy here
             Cos_Theta_Kp_COM_other = cos(kaon_boost_com_other.Theta());
