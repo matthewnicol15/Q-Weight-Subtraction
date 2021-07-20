@@ -1,7 +1,7 @@
 // Analysis split into bins of photon energy
 // Select energy range below
 
-Int_t Energy_Bin = 0 ; // Set to the energy bin you want to look at
+Int_t Energy_Bin = 2 ; // Set to the energy bin you want to look at
 // Photon Energy Bins [GeV]
 // [0]  0-3,
 // [1]  3-4
@@ -51,18 +51,18 @@ void Strangeness_1_RGA_Q_Weight(){
   auto start = std::chrono::high_resolution_clock::now();
 
   // Read file with information on vectors
-  // gROOT->ProcessLine(".L ~/work/Macros/Q_Weight/Loader.C+");
-  gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
+  gROOT->ProcessLine(".L ~/work/Macros/Q_Weight/Loader.C+");
+  // gROOT->ProcessLine(".L /mnt/f/PhD/Macros/Loader.C+");
 
   std::ostringstream Input_File_Name, Output_File_Name; // String for root file names
   std::ostringstream Input_TTree_Name, Output_TTree_Name; // String for TTree names
 
-  // Input_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
-  Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
+  Input_File_Name<<"/scratch/mn688/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
+  // Input_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Split_test_160621_"<<Energy_Bin<<".root";
   Input_TTree_Name<<"Energy_"<<Energy_Bin;
 
-  Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_060721_"<<Energy_Bin<<".root";
-  // Output_File_Name<<"/shared/storage/physhad/JLab/mn688/Trees/Dibaryon/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_060721_"<<Energy_Bin<<".root";
+  Output_File_Name<<"/scratch/mn688/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_070721_"<<Energy_Bin<<".root";
+  // Output_File_Name<<"/mnt/f/PhD/Trees/Dibaryon/RGA/Strangeness_1/RGA_Fall2018_Inbending_skim4_Exclusive_Tree_Friend_Test_150721_"<<Energy_Bin<<".root";
   Output_TTree_Name<<"Energy_"<<Energy_Bin;
 
   // Read input root file and assign it to 'f'
@@ -82,11 +82,7 @@ void Strangeness_1_RGA_Q_Weight(){
   TTree t2("t2","it's a tree!");
 
 
-  // // Functions to fit Q weight plots
-  // auto* func1=new TF1("func1","gaus(0)+pol1(3)",0.36,0.65);
-  // auto* func2=new TF1("func2","gaus(0)",0.36,0.65);
-  // auto* func3=new TF1("func3","pol1(0)",0.36,0.65);
-
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Functions to fit Q weight plots
   auto* func4=new TF1("func4","[0]*exp(-pow(x-[1],2)/(2*pow([2],2))) + [3]*exp(-pow(x-[4],2)/(2*pow(3.2*[2],2))) + pol1(5)",0.36,0.65);
   auto* func5=new TF1("func5","gaus(0)",0.36,0.65);
@@ -116,6 +112,7 @@ void Strangeness_1_RGA_Q_Weight(){
   // Q weights
   Double_t Q_Weight_1a=-10, Q_Weight_1b=-10, Q_Weight_2a=-10, Q_Weight_3a=-10, Q_Weight_4a=-10;
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Creating components to read from TTree
   // Set any vectors to 0 before reading from the TTree
@@ -173,9 +170,9 @@ void Strangeness_1_RGA_Q_Weight(){
   t2.Branch("Q_Weight_4a",&Q_Weight_4a);
   t2.Branch("eventno",&readeventno_2);
   t2.Branch("runno",&readrunno_2);
-  // t2.Branch("Q_Weight_2a",&Q_Weight_2a);
-  // t2.Branch("Q_Weight_2b",&Q_Weight_2b);
 
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Getting particle database to use for masses
   auto db=TDatabasePDG::Instance();
@@ -210,6 +207,8 @@ void Strangeness_1_RGA_Q_Weight(){
   auto* h_mass_kp_Qweights_2b=new TH2D("h_mass_kp_Qweights_2b","Q weights missing mass",400,0.3,0.7,1000,0,1);
   auto* hregion=new TH1F("hregion","Regions;Region;Counts",3,1,4);
 
+  // Creating the histogram for kaon mass of nearest neighbours
+  auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.3,0.7);
 
   // Create vectors of TLorentzVectors to store information of
   // all particles of a given type (important when you have more than 1
@@ -343,9 +342,16 @@ void Strangeness_1_RGA_Q_Weight(){
   Int_t Percentage = nentries/100;
   // This loops over all the entries in the TTree
   for(Long64_t i = 0; i < nentries; i++){
-    if((i/10)%10==0 && i%10==0)cout<<i<<endl;
+    // Printing the event number every 100 events
+    if((i/10)%10==0 && i%10==0){
+      cout<<i<<endl;
+      auto finish = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed = finish - start;
+      std::cout << i<<" Elapsed time: " << elapsed.count();
+    }
+
     // Creating the histogram for kaon mass of nearest neighbours
-    auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.3,0.7);
+    // auto* h_miss1_NN=new TH1F("h_miss1_NN","NN missing mass",100,0.3,0.7);
 
 
     // Get this entry from the TTree
@@ -362,14 +368,8 @@ void Strangeness_1_RGA_Q_Weight(){
     // Setting Q weights each event
     Q_Weight_1a = -10;
     Q_Weight_1b = -10;
-    // Q_Weight_2a = -10;
-    // Q_Weight_2b = -10;
 
-    // This prints out the percentage of events completed so far
-    // if (i % Percentage == 0){
-    //   fprintf (stderr, "%lld\r", i/Percentage);
-    //   fflush (stderr);
-    // }
+
 
     // All the vectors must be cleared at the start of each event entry
     // e^-
@@ -433,7 +433,6 @@ void Strangeness_1_RGA_Q_Weight(){
 
       // Filling histogram to show the different regions hit
       hregion->Fill(v_region->at(j));
-      // Can put a selection on which regions particles are hitting
 
       // Checking PID and assigning particles
       // e^-
@@ -565,24 +564,24 @@ void Strangeness_1_RGA_Q_Weight(){
     }
 
     // Here you can apply conditions on the events you want to analyse
-    if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
-      // cout<<"mass "<<v_mass_kp.at(0)<<endl;
+    // if(v_kp.size()==1 && v_el.size()==1 && v_pr.size()==1 && v_pim.size()==1){
+    if(v_kp.size()!=1 || v_el.size()!=1 || v_pr.size()!=1 || v_pim.size()!=1) continue;
+    {
       // If outside interested mass range then save entry but don't bother fitting
       if(v_mass_kp.at(0) > 0.65){
+        // Setting Q values to zero for values outside interested mass range
         Q_Weight_1a = 0;
         Q_Weight_1b = 0;
         Q_Weight_2a = 0;
         Q_Weight_3a = 0;
         Q_Weight_4a = 0;
 
+        // Setting fit status to some unphysical value so we know it wasn't fit
         fitStatus1 = -1;
         fitStatus2 = -1;
       }
 
       else{
-
-        // Select which region you want the particles to go in
-        // if(v_region_kp.at(0) == 1 && v_region_pr.at(0) == 1 && v_region_pim.at(0) == 1){
 
         // Missing mass of e' K^{+}, looking for lambda ground state
         miss1 = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el.at(0) - v_kp.at(0);
@@ -599,18 +598,6 @@ void Strangeness_1_RGA_Q_Weight(){
         // COM used for boosting
         COM = v_el.at(0) + v_kp.at(0) + v_pr.at(0) + v_pim.at(0);
 
-        // Filling missing mass histograms
-        hmass_kp->Fill(mass_kp);
-        hmiss_1->Fill(miss1.M());
-        hmiss_2->Fill(miss2.M2());
-        hmiss_3->Fill(miss3.M());
-
-        // Checking the delta beta for each particle
-        h_delta_beta_kp->Fill(v_kp.at(0).Rho(),v_delta_beta_kp.at(0));
-        h_delta_beta_pr->Fill(v_pr.at(0).Rho(),v_delta_beta_pr.at(0));
-        h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
-
-
         // Boosting the kaon in COM reference frame
         COM_3 = COM.BoostVector();
         kaon_boost_com = v_kp.at(0);
@@ -621,6 +608,17 @@ void Strangeness_1_RGA_Q_Weight(){
 
         // Getting the photon energy
         photon_energy = photon.E();
+
+        // Filling missing mass histograms
+        hmass_kp->Fill(mass_kp);
+        hmiss_1->Fill(miss1.M());
+        hmiss_2->Fill(miss2.M2());
+        hmiss_3->Fill(miss3.M());
+
+        // Checking the delta beta for each particle
+        h_delta_beta_kp->Fill(v_kp.at(0).Rho(),v_delta_beta_kp.at(0));
+        h_delta_beta_pr->Fill(v_pr.at(0).Rho(),v_delta_beta_pr.at(0));
+        h_delta_beta_pim->Fill(v_pim.at(0).Rho(),v_delta_beta_pim.at(0));
 
 
         // Plotting the cos(theta) distribution of K+
@@ -641,9 +639,6 @@ void Strangeness_1_RGA_Q_Weight(){
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Determining nearest neighbours for Q weight calculations
 
-        // Only looking at nearest neighbours for events with good missing mass values
-        // if(miss1.M() > 0.7 && miss1.M() < 1.6){
-
         Int_t size=0;
         // Loop over all other events
         for(Long64_t m = 0; m < nentries; m++){
@@ -655,6 +650,7 @@ void Strangeness_1_RGA_Q_Weight(){
           // Gets information on event m
           t1->GetEntry(m);
 
+          // Clearing all vectors at start of event
           v_el_other.clear();
           v_kp_other.clear();
           v_pr_other.clear();
@@ -693,8 +689,6 @@ void Strangeness_1_RGA_Q_Weight(){
             // Invariant mass of proton pi^-
             Lambda_other = v_pr_other.at(0) + v_pim_other.at(0);
 
-            // Checking if event has invariant mass close to that of ground state lambda
-            // if(Lambda_other.M() < 1.14){
 
             // Missing mass of e' K^{+}, looking for lambda ground state
             miss1_other = (TLorentzVector)*readbeam + (TLorentzVector)*readtarget - v_el_other.at(0) - v_kp_other.at(0);
@@ -705,7 +699,7 @@ void Strangeness_1_RGA_Q_Weight(){
 
             mass_kp_other = sqrt((pow(v_kp_other.at(0).Rho(),2) / (pow(beta_tof_kp_other,2))) - pow(v_kp_other.at(0).Rho(),2));
 
-            // cout<<v_kp_other.size()<<" "<<v_beta->size()<<endl;
+            // Ignoring values where mass is greater than 0.65 GeV
             if(mass_kp_other > 0.65)continue;
 
             // Making the 3 vector for COM frame of reference
@@ -720,8 +714,7 @@ void Strangeness_1_RGA_Q_Weight(){
             photon_energy_other = photon_other.E();
 
             // Calculate difference between cos thetas
-            distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2)) /*+
-            (pow((v_kp.at(0).Rho() - v_kp_other.at(0).Rho()) / Momentum_range,2))*/;
+            distance = (pow((Cos_Theta_Kp_COM - Cos_Theta_Kp_COM_other) / cos_theta_range,2));
 
 
             // If there are no entries yet then just push back the values
@@ -795,32 +788,18 @@ void Strangeness_1_RGA_Q_Weight(){
           // Loop over all the nearest neighbour values
           for(Int_t q = 0; q < k; q++){
             // Fill the histogram with the missing mass values for the nearest neighbours
-            h_miss1_NN->Fill(v_NN_mKp.at(q));
+            // h_miss1_NN->Fill(v_NN_mKp.at(q));
             // cout<<v_NN_mKp.at(q)<<endl;
           }
 
-          // Setting parameters before fitting for 3rd order polynomial and gaus
-          // func1->SetParameter(0,h_miss1_NN->GetMaximum());
-          // func1->FixParameter(1,0.49368);
-          // func1->SetParameter(2,0.025);
-          // func1->SetParameter(3,h_miss1_NN->GetMaximum() / 2.0);
-          // func1->SetParameter(4,-1);
-          // func1->SetParameter(5,0);
-          // func1->SetParameter(6,0);
-          //
-          // // Making sure the amplitude is positive to avoid negative Q weight values
-          // func1->SetParLimits(0,h_miss1_NN->GetMaximum() / 3.0,h_miss1_NN->GetMaximum() * 1.2);
-          // func1->SetParLimits(2,0.01, 0.09);
-          // func1->SetParLimits(5,0, 100);
-
           // Setting parameters before fitting for 2nd order polynomial and gaus
-          func4->SetParameter(0,h_miss1_NN->GetMaximum());
-          func4->FixParameter(1,0.49368);
-          func4->SetParameter(2,0.01);
-          func4->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
-          func4->FixParameter(4,0.49368);
-          func4->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
-          func4->SetParameter(6,-1);
+          // func4->SetParameter(0,h_miss1_NN->GetMaximum());
+          // func4->FixParameter(1,0.49368);
+          // func4->SetParameter(2,0.01);
+          // func4->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
+          // func4->FixParameter(4,0.49368);
+          // func4->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
+          // func4->SetParameter(6,-1);
 
           // Making sure the amplitude is positive to avoid negative Q weight values
           func4->SetParLimits(0,0.5,60);
@@ -828,13 +807,13 @@ void Strangeness_1_RGA_Q_Weight(){
           func4->SetParLimits(3,0.5,60);
 
           // Setting parameters before fitting for 2nd order polynomial and gaus
-          func8->SetParameter(0,h_miss1_NN->GetMaximum());
-          func8->FixParameter(1,0.49368);
-          func8->SetParameter(2,0.01);
-          func8->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
-          func8->FixParameter(4,0.49368);
-          func8->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
-          func8->SetParameter(6,-1);
+          // func8->SetParameter(0,h_miss1_NN->GetMaximum());
+          // func8->FixParameter(1,0.49368);
+          // func8->SetParameter(2,0.01);
+          // func8->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
+          // func8->FixParameter(4,0.49368);
+          // func8->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
+          // func8->SetParameter(6,-1);
 
           // Making sure the amplitude is positive to avoid negative Q weight values
           func8->SetParLimits(0,0.5,60);
@@ -842,13 +821,13 @@ void Strangeness_1_RGA_Q_Weight(){
           func8->SetParLimits(3,0.5,60);
 
           // Setting parameters before fitting for 2nd order polynomial and gaus
-          func12->SetParameter(0,h_miss1_NN->GetMaximum());
-          func12->FixParameter(1,0.49368);
-          func12->SetParameter(2,0.01);
-          func12->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
-          func12->FixParameter(4,0.49368);
-          func12->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
-          func12->SetParameter(6,-1);
+          // func12->SetParameter(0,h_miss1_NN->GetMaximum());
+          // func12->FixParameter(1,0.49368);
+          // func12->SetParameter(2,0.01);
+          // func12->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
+          // func12->FixParameter(4,0.49368);
+          // func12->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
+          // func12->SetParameter(6,-1);
 
           // Making sure the amplitude is positive to avoid negative Q weight values
           func12->SetParLimits(0,0.5,60);
@@ -856,24 +835,24 @@ void Strangeness_1_RGA_Q_Weight(){
           func12->SetParLimits(3,0.5,60);
 
           // Setting parameters before fitting for 2nd order polynomial and gaus
-          func16->SetParameter(0,h_miss1_NN->GetMaximum());
-          func16->FixParameter(1,0.49368);
-          func16->SetParameter(2,0.01);
-          func16->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
-          func16->FixParameter(4,0.49368);
-          func16->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
-          func16->SetParameter(6,-1);
+          // func16->SetParameter(0,h_miss1_NN->GetMaximum());
+          // func16->FixParameter(1,0.49368);
+          // func16->SetParameter(2,0.01);
+          // func16->SetParameter(3,h_miss1_NN->GetMaximum() / 5.0);
+          // func16->FixParameter(4,0.49368);
+          // func16->SetParameter(5,h_miss1_NN->GetMaximum() / 2.0);
+          // func16->SetParameter(6,-1);
 
           // Making sure the amplitude is positive to avoid negative Q weight values
           func16->SetParLimits(0,0.5,60);
           // func16->SetParLimits(2,0.001,0.012);
           func16->SetParLimits(3,0.5,60);
 
-          h_miss1_NN->Sumw2();
-          fitStatus1 =  h_miss1_NN->Fit("func4","RQ");
-          fitStatus1 =  h_miss1_NN->Fit("func8","RQ");
-          fitStatus1 =  h_miss1_NN->Fit("func12","RQ");
-          fitStatus1 =  h_miss1_NN->Fit("func16","RQ");
+          // h_miss1_NN->Sumw2();
+          // fitStatus1 =  h_miss1_NN->Fit("func4","RQ");
+          // fitStatus1 =  h_miss1_NN->Fit("func8","RQ");
+          // fitStatus1 =  h_miss1_NN->Fit("func12","RQ");
+          // fitStatus1 =  h_miss1_NN->Fit("func16","RQ");
 
           func5->FixParameter(0,func4->GetParameter(0));
           func5->FixParameter(1,func4->GetParameter(1));
@@ -926,7 +905,7 @@ void Strangeness_1_RGA_Q_Weight(){
 
           // Calculating Q weight for 1st fit using 2 methods
           Q_Weight_1a = sig_1 / (sig_1 + back_1);
-          Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
+          // Q_Weight_1b = 1 - (back_1 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
           // Calculating Q weight for 1st fit using 2 methods
           Q_Weight_2a = sig_2 / (sig_2 + back_2);
           // Q_Weight_2b = 1 - (back_2 / h_miss1_NN->GetBinContent(h_miss1_NN->FindBin(mass_kp)));
@@ -944,7 +923,6 @@ void Strangeness_1_RGA_Q_Weight(){
           Q_Weight_1a = 0;
           Q_Weight_1b = 0;
           Q_Weight_2a = 0;
-          // Q_Weight_2b = 0;
           Q_Weight_3a = 0;
           Q_Weight_4a = 0;
         }
@@ -952,16 +930,17 @@ void Strangeness_1_RGA_Q_Weight(){
       }
       h_mass_kp_Qweights_1a->Fill(mass_kp,Q_Weight_1a);
       h_mass_kp_Qweights_1b->Fill(mass_kp,Q_Weight_1b);
-      // h_mass_kp_Qweights_2a->Fill(mass_kp,Q_Weight_2a);
-      // h_mass_kp_Qweights_2b->Fill(mass_kp,Q_Weight_2b);
-      // if(Q_Weight_1a < 0) cout<<"Bad! "<<mass_kp<<" "<<Q_Weight_1a<<" "<<sig_1<<" "<<back_1<<endl;
+
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+      // Looking at events with invariant mass close to lambda ground state
       if(lambda.M() < 1.14){
         hmiss_1_2->Fill(miss1.M());
 
-
+        // Plot missing mass eK+ for phi missing mass
         if(miss3.M()> 0.9 && miss3.M() < 1.1) hmiss_1_phi->Fill(miss1.M());
+
+
         // Looking at the sidebands from the mass of kaons
         if(mass_kp > 0.454404 && mass_kp < 0.535267){
           hmiss_1_sig->Fill(miss1.M());
@@ -981,18 +960,8 @@ void Strangeness_1_RGA_Q_Weight(){
 
       }
 
-      // } // Selecting events with kaons and protons hitting FD
     } // Selecting events with 1 e, 1 K^{+} and 1 p
 
-    // auto *c1=new TCanvas("c1","",800,800);
-    // h_miss1_NN->Draw();
-    // func1->SetLineColor(kYellow);
-    // func2->SetLineColor(kBlack);
-    // func3->SetLineColor(kOrange);
-    // func1->Draw("same");
-    // func2->Draw("same");
-    // func3->Draw("same");
-    //
     // auto *c2=new TCanvas("c2","",800,800);
     // h_miss1_NN->Draw();
     // func5->SetLineColor(kBlue);
@@ -1036,8 +1005,16 @@ void Strangeness_1_RGA_Q_Weight(){
     // auto *c3=new TCanvas("c3","",800,800);
     // h_distance->Draw();
 
-    h_miss1_NN->Delete();
+    // Delete nearest neighbour histogram at end of every event
+    // h_miss1_NN->Delete();
+    // Clears the histogram
+    h_miss1_NN->Reset("ICESM");
+    // Fill the tree
     t2.Fill();
+
+    // Saving file every 1000 events to avoid memory leak
+    if (i%1000 == 1) t2.AutoSave("SaveSelf");
+
   } // Event loop
 
 
